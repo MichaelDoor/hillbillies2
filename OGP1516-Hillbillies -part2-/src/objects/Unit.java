@@ -1,5 +1,7 @@
+package objects;
 import java.util.*;
 import ogp.framework.util.*;
+import position.PositionVector;
 import be.kuleuven.cs.som.annotate.*;
 
 /**

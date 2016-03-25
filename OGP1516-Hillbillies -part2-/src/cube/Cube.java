@@ -1,5 +1,9 @@
+package cube;
+import objects.GameObject;
+import java.util.*;
 import be.kuleuven.cs.som.annotate.*;
 import ogp.framework.util.Util;
+import position.PositionVector;
 
 /**
  * A class of cubes, having a position and holding objects.
@@ -7,9 +11,12 @@ import ogp.framework.util.Util;
  * @invar  The position of each cube must be a valid position for any
  *         cube.
  *       | isValidPosition(getPosition())
+ * @invar  The content of each cube must be a valid content for any
+ *         cube.
+ *       | isValidContent(getContent())
  *       
  * @author Michaël Dooreman
- * @version	0.1
+ * @version	0.2
  *
  */
 public abstract class Cube {
@@ -24,10 +31,15 @@ public abstract class Cube {
 	 * @effect The position of this new cube is set to
 	 *         the given position.
 	 *       | this.setPosition(position)
+	 * @effect The content of this new cube is set empty.
+	 *       | this.setContent(new ArrayList<GameObject>())
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this cube.
 	 */
 	public Cube(PositionVector position)
 			throws IllegalArgumentException {
 		this.setPosition(position);
+		this.setContent(new ArrayList<GameObject>());
 	}
 	
 	
@@ -70,7 +82,7 @@ public abstract class Cube {
 	 *       | ! isValidPosition(getPosition())
 	 */
 	@Raw
-	public void setPosition(PositionVector position) 
+	private void setPosition(PositionVector position) 
 			throws IllegalArgumentException {
 		if (! isValidPosition(position))
 			throw new IllegalArgumentException();
@@ -79,10 +91,71 @@ public abstract class Cube {
 	
 	/**
 	 * Variable registering the position of this cube.
-	 */
+	*/
 	private PositionVector position;
 	
+	/**
+	 * Return the terrain type of this cube.
+	 */
+	@Basic @Raw @Immutable
+	public abstract int getTerrainType();
 	
 	
-
+	/**
+	 * Return the content of this cube.
+	 */
+	@Basic @Raw
+	public List<GameObject> getContent() {
+		return this.content;
+	}
+	
+	/**
+	 * Check whether the given content is a valid content for
+	 * any cube.
+	 *  
+	 * @param  content
+	 *         The content to check.
+	 * @return 
+	 *       | result == (content != null)
+	*/
+	public static boolean isValidContent(List<GameObject> content) {
+		return (content != null);
+	}
+	
+	/**
+	 * Set the content of this cube to the given content.
+	 * 
+	 * @param  content
+	 *         The new content for this cube.
+	 * @post   The content of this new cube is equal to
+	 *         the given content.
+	 *       | new.getContent() == content
+	 * @throws NullPointerException
+	 *         The given content is not a valid content for any
+	 *         cube.
+	 *       | ! isValidContent(getContent())
+	 */
+	@Raw
+	private void setContent(List<GameObject> content) 
+			throws NullPointerException {
+		if (! isValidContent(content))
+			throw new NullPointerException();
+		this.content = content;
+	}
+	
+	/**
+	 * Variable registering the content of this cube.
+	 */
+	private List<GameObject> content;
+	
+	/**
+	 * 
+	 * @param content
+	 * @throws IllegalArgumentException
+	 */
+	public void addContent(GameObject content) throws IllegalArgumentException{
+		if (! isValidCubeContent(content))
+			throw new IllegalArgumentException();
+		this.content.add(content);
+	}
 }
