@@ -85,6 +85,20 @@ public abstract class GameObject {
 	protected PositionVector position;
 	
 	/**
+	 * Return the cubePosition of this unit.
+	 * @return	The position of the cube on which this unit is standing.
+	 * 			| result == {(int) this.getUnitPosition().getXArgument(), (int) this.getUnitPosition().getYArgument(),
+	 * 			|										(int) this.getUnitPosition().getZArgument()}
+	 */
+	public int[] getCubePosition() {
+		int x = (int) this.getUnitPosition().getXArgument();
+		int y = (int) this.getUnitPosition().getYArgument();
+		int z = (int) this.getUnitPosition().getZArgument();
+		int[] position = {x,y,z};
+		return position;
+	}
+	
+	/**
 	 * Return the weight of this unit.
 	 */
 	@Basic @Raw

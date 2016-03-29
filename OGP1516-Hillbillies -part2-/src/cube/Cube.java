@@ -105,7 +105,7 @@ public abstract class Cube {
 	 * Return the content of this cube.
 	 */
 	@Basic @Raw
-	public List<GameObject> getContent() {
+	public ArrayList<GameObject> getContent() {
 		return this.content;
 	}
 	
@@ -136,7 +136,7 @@ public abstract class Cube {
 	 *       | ! isValidContent(getContent())
 	 */
 	@Raw
-	private void setContent(List<GameObject> content) 
+	private void setContent(ArrayList<GameObject> content) 
 			throws NullPointerException {
 		if (! isValidContent(content))
 			throw new NullPointerException();
@@ -146,7 +146,7 @@ public abstract class Cube {
 	/**
 	 * Variable registering the content of this cube.
 	 */
-	private List<GameObject> content;
+	private ArrayList<GameObject> content;
 	
 	/**
 	 * Add an object to the content of this cube.
@@ -182,7 +182,9 @@ public abstract class Cube {
 	 * @return	True if and only if the object is effective and is located in this cube.
 	 */
 	public boolean canHaveAsContent(GameObject object) {
-		return (object != null) && (object.getCubePosition().equals(this.getPosition()));
+		PositionVector objectPosition = new PositionVector(object.getCubePosition()[0],object.getCubePosition()[1]
+				,object.getCubePosition()[2]);
+		return (object != null) && (objectPosition.equals(this.getPosition()));
 	}
 	
 	/**
@@ -198,8 +200,15 @@ public abstract class Cube {
 		return this.content.contains(object);
 	}
 	
-	
+	/**
+	 * Check whether this cube can have the elements of its content as its content.
+	 * @return	True if and only if this cube can have each element of it's content as content.
+	 */
 	public boolean hasProperContent() {
-		return false;
+		ArrayList<GameObject> content = this.getContent();
+		for (GameObject object : content)
+			if (! this.canHaveAsContent(object))
+				return false;
+		return true;
 	}
 }

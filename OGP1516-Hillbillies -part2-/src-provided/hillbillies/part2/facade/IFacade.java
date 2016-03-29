@@ -28,7 +28,7 @@ import ogp.framework.util.ModelException;
  * <ul>
  * <li>a class {@link Unit} for representing a Hillbilly Unit</li>
  * <li>a class {@link World} for representing a Hillbilly World</li>
- * <li>a class {@link Faction} for representing a unit faction</li>
+ * <li>a class {@link faction} for representing a unit faction</li>
  * <li>a class {@link Boulder} for representing a boulder object</li>
  * <li>a class {@link Log} for representing a log object</li>
  * </ul>
