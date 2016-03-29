@@ -74,7 +74,7 @@ import be.kuleuven.cs.som.annotate.*;
  * @author Michaël Dooreman
  * @version	0.19
  */
-public class Unit {
+public class Unit extends GameObject {
 	
 	/**
 	 * Initialize this new Unit with given position, name, weight, strength, agility, toughness.

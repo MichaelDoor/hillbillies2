@@ -149,13 +149,52 @@ public abstract class Cube {
 	private List<GameObject> content;
 	
 	/**
-	 * 
-	 * @param content
+	 * Add an object to the content of this cube.
+	 * @param object	The given object.
+	 * @effect	The given object is added to the content of this cube.
 	 * @throws IllegalArgumentException
+	 * 			The given object is not a valid content for this cube.
 	 */
-	public void addContent(GameObject content) throws IllegalArgumentException{
-		if (! isValidCubeContent(content))
+	public void addAsContent(GameObject object) throws IllegalArgumentException{
+		if (! this.canHaveAsContent(object))
 			throw new IllegalArgumentException();
-		this.content.add(content);
+		this.content.add(object);
+	}
+	
+	/**
+	 * Remove an object from the content of this cube.
+	 * @param object	The given object.
+	 * @effect	The given object is deleted from the content of this cube.
+	 * @throws	IllegalArgumentException
+	 * 			This cube does not contain the given object.
+	 * @throws	NullPointerException
+	 * 			The given object is not effective.
+	 */
+	public void removeAsContent(GameObject object) throws IllegalArgumentException, NullPointerException {
+		if (! this.hasAsContent(object))
+			throw new IllegalArgumentException("This cube does not contain the given object!");
+		this.content.remove(object);
+	}
+	
+	/**
+	 * Check whether the given object can belong to the content of this cube.
+	 * @param object	The given object.
+	 * @return	True if and only if the object is effective and is located in this cube.
+	 */
+	public boolean canHaveAsContent(GameObject object) {
+		return (object != null) && (object.getCubePosition().equals(this.getPosition()));
+	}
+	
+	/**
+	 * Check whether a given position is in the content of this cube.
+	 * @param object	The given object.
+	 * @return	True if and only if this cube's content contains the object.
+	 * @throws	NullPointerException
+	 * 			The object is not effective.
+	 */
+	public boolean hasAsContent(GameObject object) {
+		if (object == null)
+			throw new NullPointerException();
+		return this.content.contains(object);
 	}
 }
