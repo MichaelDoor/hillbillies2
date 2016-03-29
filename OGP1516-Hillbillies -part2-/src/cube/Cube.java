@@ -197,4 +197,9 @@ public abstract class Cube {
 			throw new NullPointerException();
 		return this.content.contains(object);
 	}
+	
+	
+	public boolean hasProperContent() {
+		return false;
+	}
 }
