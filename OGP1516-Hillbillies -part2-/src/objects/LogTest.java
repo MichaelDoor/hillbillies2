@@ -1,4 +1,4 @@
-package cube;
+package objects;
 
 import static org.junit.Assert.*;
 
@@ -10,7 +10,7 @@ import org.junit.Test;
 
 import position.PositionVector;
 
-public class CubeTest {
+public class LogTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -30,29 +30,16 @@ public class CubeTest {
 
 	@Test
 	public void constructor_LegalCase() {
-		Cube cube = new Cube(new PositionVector(0,0,0)) {
-			
-			@Override
-			public int getTerrainType() {
-				// TODO Auto-generated method stub
-				return 0;
-			}
-		};
-		assertEquals(true, cube.getPosition().equals(new PositionVector(0,0,0)));
-		assertEquals(true, cube.getContent().isEmpty());
-
+		PositionVector position = new PositionVector(0,0,0);
+		Log log = new Log(position);
+		assertEquals(true, log.getUnitPosition().equals(position));
+		assertEquals(true, log.getWeight() <= 50);
+		assertEquals(true, log.getWeight() >= 10);
 	}
 	
-	@Test (expected =  IllegalArgumentException.class)
+	@Test (expected = IllegalArgumentException.class)
 	public void constructor_IllegalCase() throws IllegalArgumentException {
-		new Cube(new PositionVector(0.5, 1.3, 2.6)) {
-			
-			@Override
-			public int getTerrainType() {
-				// TODO Auto-generated method stub
-				return 0;
-			}
-		};
+		new Log(new PositionVector(1000,0,0));
 	}
 
 }

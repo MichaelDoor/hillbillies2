@@ -1,6 +1,5 @@
 package objects;
 import java.util.*;
-import ogp.framework.util.*;
 import position.PositionVector;
 import be.kuleuven.cs.som.annotate.*;
 
@@ -141,7 +140,7 @@ public class Unit extends GameObject {
 	 */
 	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight) 
 													throws IllegalArgumentException, NullPointerException {
-		this.setUnitPosition(centrePosition(position));
+		super(centrePosition(position));
 		this.setName(name);
 		this.setStrength(makeInitialAttValue(strength));
 		this.setAgility(makeInitialAttValue(agility));
@@ -167,64 +166,7 @@ public class Unit extends GameObject {
 	}
 
 
-	/**
-	 * Return the unitPosition of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getUnitPosition() {
-		return this.position;
-	}
-	
-	/**
-	 * Check whether the given unitPosition is a valid unitPosition for
-	 * any unit.
-	 *  
-	 * @param  unitPosition
-	 *         The unitPosition to check.
-	 * @return 
-	 *       | result == (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-	 *       |				&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-	 *       |					&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0)
-	 *       |						&& (position.getXArgument() < 50) && (position.getYArgument() < 50) && (position.getZArgument() < 50))
-	 * @throws	NullPointerException
-	 * 			The position is not effective.
-	 * 			| position == null
-	*/
-	private static boolean isValidUnitPosition(PositionVector position) throws NullPointerException {
-		return (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-					&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-						&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0)
-				      		&& (position.getXArgument() < 50) && (position.getYArgument() < 50) && (position.getZArgument() < 50));
-	}
-	
-	/**
-	 * Set the unitPosition of this unit to the given unitPosition.
-	 * 
-	 * @param  position
-	 *         The new unitPosition for this unit.
-	 * @post   The unitPosition of this new unit is equal to
-	 *         the given unitPosition.
-	 *       	| new.getUnitPosition().equals(position)
-	 * @throws IllegalArgumentException
-	 *         The given unitPosition is not a valid unitPosition for any
-	 *         unit.
-	 *       	| ! isValidUnitPosition(getUnitPosition())
-	 * @throws	NullPointerException
-	 * 			The position is not effective.
-	 * 			| position == null
-	 */
-	@Raw @Model
-	private void setUnitPosition(PositionVector position) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidUnitPosition(position))
-			throw new IllegalArgumentException("Out of bounds!");
-		this.position = new PositionVector (position.getXArgument(), position.getYArgument(), position.getZArgument());
-	}
-	
-	/**
-	 * Variable registering the unitPosition of this unit.
-	 */
-	private PositionVector position;
+
 		
 	/**
 	 * Return the cubePosition of this unit.
@@ -377,13 +319,6 @@ public class Unit extends GameObject {
 		this.setName(name);
 	}
 
-	/**
-	 * Return the weight of this unit.
-	 */
-	@Basic @Raw
-	public int getWeight() {
-		return this.weight;
-	}
 	
 	/**
 	 * Check whether the given weight is a valid weight for
@@ -395,7 +330,7 @@ public class Unit extends GameObject {
 	 *       | result == ((weight >= 1) && (weight <= 200) && (weight >= ((this.getStrength()+this.getAgility())/2)))
 	*/
 	@Raw
-	private boolean isValidWeight(int weight) {
+	protected boolean isValidWeight(int weight) {
 		int strength = this.getStrength();
 		int agility = this.getAgility();
 		int minBorder = (int) ((strength + agility)/2.0);
@@ -420,7 +355,7 @@ public class Unit extends GameObject {
 	 * 			| if (weight < (this.getStrength()+this.getAgility())/2)
 	 * 			| 	this.weight = (this.getStrength()+this.getAgility())/2
 	 */
-	@Raw
+	@Override @Raw
 	public void setWeight(int weight) {
 		if (isValidWeight(weight))
 			this.weight = weight;
@@ -431,11 +366,6 @@ public class Unit extends GameObject {
 			this.weight = (this.getStrength()+this.getAgility())/2;
 		}
 	}
-	
-	/**
-	 * Variable registering the weight of this unit.
-	 */
-	private int weight;
 	
 	
 	/**
