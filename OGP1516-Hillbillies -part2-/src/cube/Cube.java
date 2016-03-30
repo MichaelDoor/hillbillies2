@@ -42,6 +42,26 @@ public abstract class Cube {
 		this.setContent(new ArrayList<GameObject>());
 	}
 	
+	/**
+	 * Initialize this new cube with given position and content.
+	 *
+	 * @param  position
+	 *         The position for this new cube.
+	 * @param	content
+	 * 			The content of this new cube.
+	 * @effect The position of this new cube is set to
+	 *         the given position.
+	 *       | this.setPosition(position)
+	 * @effect The content of this new cube is equal to the given content.
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this cube.
+	 */
+	public Cube(PositionVector position, ArrayList<GameObject> content)
+			throws IllegalArgumentException {
+		this.setPosition(position);
+		this.setContent(content);
+	}
+	
 	
 	/**
 	 * Return the position of this cube.
@@ -97,7 +117,7 @@ public abstract class Cube {
 	/**
 	 * Return the terrain type of this cube.
 	 */
-	@Basic @Raw @Immutable
+	@Basic @Immutable
 	public abstract int getTerrainType();
 	
 	
@@ -211,4 +231,25 @@ public abstract class Cube {
 				return false;
 		return true;
 	}
+	
+	/**
+	 * Variable registering the side length of any cube.
+	 */
+	private static final int sideLength = 1;
+	
+	/**
+	 * Return the side length of any cube.
+	 * @return	The side length of any cube.
+	 */
+	@Basic @Raw
+	public int getSideLength() {
+		return sideLength;
+	}
+	
+	/**
+	 * Check whether this cube is solid or not.
+	 * @return	True if and only if this cube i solid.
+	 */
+	@Immutable @Raw
+	public abstract boolean isSolid();
 }
