@@ -8,7 +8,10 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import hillbillies.model.Unit;
 import hillbillies.part2.listener.DefaultTerrainChangeListener;
+import hillbillies.tests.facade.World;
+import ogp.framework.util.ModelException;
 
 
 public class WorldTest {
@@ -40,5 +43,6 @@ public class WorldTest {
 		assertEquals(nbY, world.getNbCubesY());
 		assertEquals(nbZ, world.getNbCubesZ());
 	}
+	
 
 }

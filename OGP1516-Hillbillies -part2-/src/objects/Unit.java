@@ -165,6 +165,27 @@ public class Unit extends GameObject {
 		this.setDefaultBehaviour(false);
 	}
 	
+	/**
+	 * Initialize this new Unit with given position, name and random attribute values.
+	 * @param  position		The position for this new unit.
+	 * @param  name			The name for this new unit.
+	 * @effect	A new unit is initialized with the given position, name and random initial attribute values.
+	 * 			| this(position, name, randomInitialAttValue(), randomInitialAttValue(),
+	 * 										 randomInitialAttValue(), randomInitialAttValue())
+	 * @throws  IllegalArgumentException
+	 * 		    The given name is not a valid name.
+	 * 			| ! isValidName(name)
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this unit.
+	 * 			| !isValidUnitPosition(position)
+	 * @throws	NullPointerException
+	 * 			The position is not effective.
+	 * 			| position == null
+	 */
+	public Unit(PositionVector position, String name) throws IllegalArgumentException, NullPointerException {
+		this(position, name, randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue());
+	}
+	
 	
 	/**
 	 * Return the name of this unit.
@@ -1034,7 +1055,7 @@ public class Unit extends GameObject {
 	 * 			The given position is not an effective.
 	 * 			| position == null
 	 */
-	private static PositionVector centrePosition(PositionVector position) throws NullPointerException{
+	public static PositionVector centrePosition(PositionVector position) throws NullPointerException{
 		double x = Math.floor(position.getXArgument()) + (cubeLength/2);
 		double y = Math.floor(position.getYArgument()) + (cubeLength/2);
 		double z = Math.floor(position.getZArgument()) + (cubeLength/2);
@@ -2341,11 +2362,31 @@ public class Unit extends GameObject {
 	 * 			| result == attributeValue
 	 */
 	private static int makeInitialAttValue(int attributeValue){
-		if (attributeValue > 100)
+		if (attributeValue > maxInitialAttValue)
 			return 100;
-		else if (attributeValue < 25)
+		else if (attributeValue < minInitialAttValue)
 			return 25;
 		else 
 			return attributeValue;
 	}
+	
+	/**
+	 * Generate a valid random initial value for any attribute of any unit.
+	 * @return	A random value between the maxInitialAttValue and the minInitialAttValue.
+	 * 			| new Random().nextInt(maxInitialAttValue-minInitialAttValue+1)+minInitialAttValue
+	 */
+	private static int randomInitialAttValue() {
+		Random generator = new Random();
+		return generator.nextInt(maxInitialAttValue-minInitialAttValue+1)+minInitialAttValue;
+	}
+	
+	/**
+	 * A variable registering the maximum value a unit's attributes can have upon initialization.
+	 */
+	private static int maxInitialAttValue = 100;
+	
+	/**
+	 * A variable registering the minimum value a unit's attributes can have upon initialization.
+	 */
+	private static int minInitialAttValue = 25;
 }

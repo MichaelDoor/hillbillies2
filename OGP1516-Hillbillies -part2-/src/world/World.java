@@ -21,8 +21,14 @@ import position.PositionVector;
  *       | isValidCubeMatrix(getCubeMatrix())
  * @invar  Each cube can have its connected to border checker as connected to border checker.
  *       | canHaveAsConnectedToBorder(this.getConnectedToBorder())
+ * @invar  The number of units of each world must be a valid number of units for any
+ *         world.
+ *       | isValidNumberOfUnits(getNumberOfUnits())
+ * @invar  The unit list of each world must be a valid unit list for any
+ *         world.
+ *       | isValidUnitList(getUnitList())
  * @author Michaël
- * @version 0.5
+ * @version 0.6
  */
 public class World {
 	
@@ -41,6 +47,8 @@ public class World {
 	 * @effect	The cube matrix of this world is initialized.
 	 * @effect	Initializes this world's connected to border checker.
 	 * @effect	This world's terrain is made valid.
+	 * @effect The number of units of this new world is set to 0.
+	 * @effect The unit list of this new world is set to an empty array list.
 	 */
 	public World(int[][][] terrainTypes, TerrainChangeListener modelListener)
 			throws NullPointerException {
@@ -50,6 +58,8 @@ public class World {
 		this.connectedToBorder = new ConnectedToBorder(this.getNbCubesX(), this.getNbCubesY(), this.getNbCubesZ());
 		this.initializeConnectedToBorder();
 		this.makeValidTerrain();
+		this.setNumberOfUnits(0);
+		this.setUnitList(new ArrayList<Unit>());
 	}
 	
 	
@@ -318,7 +328,8 @@ public class World {
 	 * @param y	The y coordinate of the targeted cube.
 	 * @param z	The z coordinate of the targeted cube.
 	 * @effect	Creates a new air cube, injects the content of the old cube into it and adds the item that spawns by the cave-in
-	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube.
+	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube and let's this world make its
+	 * terrain a valid terrain.
 	 * @throws	IllegalStateException
 	 * 			The targeted cube is passable.
 	 * @throws	IllegalArgumentException
@@ -335,6 +346,7 @@ public class World {
 		if (caveInItemCheck() == true)
 			cube.addAsContent(this.caveInItem(position, terrainType));
 		this.replaceCube(cube);
+		this.makeValidTerrain();
 	}
 	
 	/**
@@ -390,5 +402,151 @@ public class World {
 		this.modelListener.notifyTerrainChanged(x, y, z);
 	}
 	
+	
+	/**
+	 * Return the number of units of this world.
+	 */
+	@Basic @Raw
+	public int getNumberOfUnits() {
+		return this.numberOfUnits;
+	}
+	
+	/**
+	 * Check whether the given number of units is a valid number of units for
+	 * any world.
+	 *  
+	 * @param  number of units
+	 *         The number of units to check.
+	 * @return 
+	 *       | result == ((numberOfUnits <= maxNumberOfUnits) && (numberOfUnits >= 0))
+	*/
+	public static boolean isValidNumberOfUnits(int numberOfUnits) {
+		return ((numberOfUnits <= maxNumberOfUnits) && (numberOfUnits >= 0));
+	}
+	
+	/**
+	 * Set the number of units of this world to the given number of units.
+	 * 
+	 * @param  numberOfUnits
+	 *         The new number of units for this world.
+	 * @post   The number of units of this new world is equal to
+	 *         the given number of units.
+	 *       | new.getNumberOfUnits() == numberOfUnits
+	 * @throws IllegalArgumentException
+	 *         The given number of units is not a valid number of units for any
+	 *         world.
+	 *       | ! isValidNumberOfUnits(getNumberOfUnits())
+	 */
+	@Raw
+	public void setNumberOfUnits(int numberOfUnits) 
+			throws IllegalArgumentException {
+		if (! isValidNumberOfUnits(numberOfUnits))
+			throw new IllegalArgumentException();
+		this.numberOfUnits = numberOfUnits;
+	}
+	
+	/**
+	 * Variable registering the number of units of this world.
+	 */
+	private int numberOfUnits;
+	
+	/**
+	 * Variable registering the maximum number of units allowed in any world.
+	 */
+	private static int maxNumberOfUnits = 100;
+	
+	
+	/**
+	 * Return the unit list of this world.
+	 */
+	@Basic @Raw
+	public ArrayList<Unit> getUnitList() {
+		return this.unitList;
+	}
+	
+	/**
+	 * Check whether the given unit list is a valid unit list for
+	 * any world.
+	 *  
+	 * @param  unit list
+	 *         The unit list to check.
+	 * @return 
+	 *       | result == (unitList != null)	
+	*/
+	public static boolean isValidUnitList(ArrayList<Unit> unitList) {
+		return (unitList != null);
+	}
+	
+	/**
+	 * Set the unit list of this world to the given unit list.
+	 * 
+	 * @param  unitList
+	 *         The new unit list for this world.
+	 * @post   The unit list of this new world is equal to
+	 *         the given unit list.
+	 *       | new.getUnitList() == unitList
+	 * @throws NullPointerException
+	 *         The given unit list is not a valid unit list for any
+	 *         world.
+	 *       | ! isValidUnitList(getUnitList())
+	 */
+	@Raw
+	public void setUnitList(ArrayList<Unit> unitList) 
+			throws NullPointerException {
+		if (! isValidUnitList(unitList))
+			throw new NullPointerException();
+		this.unitList = unitList;
+	}
+	
+	/**
+	 * Variable registering the unit list of this world.
+	 */
+	private ArrayList<Unit> unitList;
+	
+	/**
+	 * Add a given unit to this world.
+	 * @param unit	The given unit.
+	 * @throws IllegalStateException
+	 * 			This world can't contain any more units.
+	 */
+	public void addUnit(Unit unit) throws IllegalStateException {
+		try{
+			if(maxNumberOfUnits == 100)
+				throw new IllegalStateException();
+			this.getUnitList().add(unit);
+			int[] cubePosition = unit.getCubePosition();
+			this.getCube(cubePosition[0], cubePosition[1], cubePosition[2]).addAsContent(unit);
+		}
+		catch (IllegalStateException exc) {
+			
+		}
+	}
+	
+	/**
+	 * Spawn a unit with a random position and random attribute values.
+	 * @param enableDefaultBehaviour	The status of the default behaviour of the to be spawned unit.
+	 * @effect	A random center cube position is generated, a name according to the number units in this world is generated.
+	 * 			A unit with this generated name and position and with random attribute values is initialized and added to this world.
+	 */
+	public void spawnUnit(boolean enableDefaultBehaviour) {
+		PositionVector position = Unit.centrePosition(this.randomPosition());
+		String name = "Unit" + this.getUnitList().size();
+		Unit unit = new Unit(position, name);
+		if(enableDefaultBehaviour == true)
+			unit.startDefaultBehaviour();
+		this.addUnit(unit);
+	}
+	
+	/**
+	 * Return a random position (integer coordinates) in this world.
+	 * @return	A random position in integer coordinates, located in this world.
+	 */
+	public PositionVector randomPosition() {
+		Random generator = new Random();
+		int x = generator.nextInt(this.getNbCubesX());
+		int y = generator.nextInt(this.getNbCubesY());
+		int z = generator.nextInt(this.getNbCubesZ());
+		return new PositionVector(x,y,z);
+	}
 	
 }
