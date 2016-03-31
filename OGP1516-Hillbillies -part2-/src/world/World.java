@@ -1,7 +1,6 @@
 package world;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
 
 import be.kuleuven.cs.som.annotate.*;
 import cube.*;
@@ -24,9 +23,12 @@ import position.PositionVector;
  * @invar  The number of units of each world must be a valid number of units for any
  *         world.
  *       | isValidNumberOfUnits(getNumberOfUnits())
- * @invar  The unit list of each world must be a valid unit list for any
+ * @invar  The unit set of each world must be a valid unit set for any
  *         world.
- *       | isValidUnitList(getUnitList())
+ *       | isValidUnitSet(getUnitSet())
+ * @invar  The object set of each world must be a valid object set for any
+ *         world.
+ *       | isValidObjectSet(getObjectSet())
  * @author Michaël
  * @version 0.6
  */
@@ -48,7 +50,8 @@ public class World {
 	 * @effect	Initializes this world's connected to border checker.
 	 * @effect	This world's terrain is made valid.
 	 * @effect The number of units of this new world is set to 0.
-	 * @effect The unit list of this new world is set to an empty array list.
+	 * @effect The unit set of this new world is set to an empty hash set.
+	 * @effect The material set of this new world is set to an empty hash set.
 	 */
 	public World(int[][][] terrainTypes, TerrainChangeListener modelListener)
 			throws NullPointerException {
@@ -59,7 +62,8 @@ public class World {
 		this.initializeConnectedToBorder();
 		this.makeValidTerrain();
 		this.setNumberOfUnits(0);
-		this.setUnitList(new ArrayList<Unit>());
+		this.setUnitSet(new HashSet<Unit>());
+		this.setMaterialSet(new HashSet<Material>());
 	}
 	
 	
@@ -207,6 +211,30 @@ public class World {
 	}
 	
 	/**
+	 * Return a cube with a given position, content and terrain type, for a given position, content and terrain number.
+	 * @param cubePosition	The given position.
+	 * @param content	The given content.
+	 * @param terrainNb	The given terrain number.
+	 * @return	An air, rock, tree or workshop cube, depending on the given terrain number, having the given position as its position
+	 * and the given content as it's content. When no valid terrain number is given, air is returned.
+	 */
+	@Raw @Model
+	private Cube mapCube(PositionVector cubePosition, ArrayList<GameObject> content, int terrainNb) {
+		Cube cube = null;
+		if (terrainNb == 0)
+			cube = new Air(cubePosition, content);
+		if (terrainNb == 1)
+			cube = new Rock(cubePosition, content);
+		if (terrainNb == 2)
+			cube = new Tree(cubePosition, content);
+		if (terrainNb == 3)
+			cube = new Workshop(cubePosition, content);
+		else
+			cube = new Air(cubePosition, content);
+		return cube;
+	}
+	
+	/**
 	 * Return a cube with a given position, being a specific terrain type cube, for a given position and terrain number.
 	 * @param cubePosition	The given position.
 	 * @param terrainNb	The given terrain number.
@@ -215,18 +243,7 @@ public class World {
 	 */
 	@Raw @Model
 	private Cube mapCube(PositionVector cubePosition, int terrainNb) {
-		Cube cube = null;
-		if (terrainNb == 0)
-			cube = new Air(cubePosition);
-		if (terrainNb == 1)
-			cube = new Rock(cubePosition);
-		if (terrainNb == 2)
-			cube = new Tree(cubePosition);
-		if (terrainNb == 3)
-			cube = new Workshop(cubePosition);
-		else
-			cube = new Air(cubePosition);
-		return cube;
+		return this.mapCube(cubePosition, new ArrayList<GameObject>(), terrainNb);
 	}
 	
 	/**
@@ -247,6 +264,34 @@ public class World {
 		if ((x < 0) || (y < 0) || (z <0) || (x > this.getNbCubesX()) || (y > this.getNbCubesY()) || (z > this.getNbCubesZ()))
 				throw new IllegalArgumentException("Coordinates out of bounds!");
 		return this.getCubeMatrix()[x][y][z];
+	}
+	
+	/**
+	 * Return the terrain type of the cube at a given position.
+	 * @param x	The given x component of the targeted cube.
+	 * @param y The given y component of the targeted cube.
+	 * @param z The given z component of the targeted cube.
+	 * @return	The terrain type of the cube at the given position.
+	 */
+	public int getCubeType(int x, int y, int z){
+		return this.getCube(x, y, z).getTerrainType();
+	}
+	
+	/**
+	 * Set the cube of which the coordinates are given, to a given terrain type.
+	 * @param x	The given x component of the targeted cube.
+	 * @param y The given y component of the targeted cube.
+	 * @param z The given z component of the targeted cube.
+	 * @param terrainType	The given terrain type.
+	 * @effect	The old cube is replaced by a new cube with the same position and the given terrain type.
+	 * @throws IllegalArgumentException
+	 * 			The given coordinates are outside of this world.
+	 */
+	public void setCubeType(int x, int y, int z, int terrainType) throws IllegalArgumentException {
+		if(! this.isValidPosition(new PositionVector(x, y, z)))
+			throw new IllegalArgumentException("Position not in this world!");
+		Cube oldCube = this.getCube(x, y, z);
+		this.replaceCube(this.mapCube(oldCube.getPosition(), oldCube.getContent(), terrainType));
 	}
 	
 	/**
@@ -334,6 +379,8 @@ public class World {
 	 * 			The targeted cube is passable.
 	 * @throws	IllegalArgumentException
 	 * 			The given position is out of bounds.
+	 * @note	By propagating the cave-in, than rather making the whole terrain of this world valid again, this method has a better
+	 * 			performance.
 	 */
 	public void caveIn(int x, int y, int z) throws IllegalStateException, IllegalArgumentException {
 		PositionVector position = new PositionVector(x, y, z);
@@ -343,10 +390,13 @@ public class World {
 		ArrayList<GameObject> content = cube.getContent();
 		int terrainType = cube.getTerrainType();
 		cube = new Air(position, content);
-		if (caveInItemCheck() == true)
-			cube.addAsContent(this.caveInItem(position, terrainType));
+		if (caveInItemCheck() == true){
+			Material item = this.caveInItem(position, terrainType);
+			cube.addAsContent(item);
+			this.addMaterial(item);
+		}
 		this.replaceCube(cube);
-		this.makeValidTerrain();
+		this.propagateCaveIn(cube.getPosition());
 	}
 	
 	/**
@@ -366,8 +416,8 @@ public class World {
 	 * Return an item with a given position, the kind of item depends on the given terrain type.
 	 * @param position	The given position.
 	 * @param terrainType	The given terrain type.
-	 * @return	A boulder with the given position as its position, if the given terrain type is 1.
-	 * @return	A log with the given position as its position, if the given terrain type is 2.
+	 * @return	A boulder with the given position as its position, if the given terrain type is 1 or 
+	 * log with the given position as its position, if the given terrain type is 2.
 	 * @throws IllegalArgumentException
 	 * 			The given terrain type is neither 1 or 2.
 	 * @throws	NullPointerException
@@ -402,6 +452,57 @@ public class World {
 		this.modelListener.notifyTerrainChanged(x, y, z);
 	}
 	
+	/**
+	 * Makes a cave-in of a cube at a given position propagate to its direct adjacent cubes,
+	 * resulting in possible cave-ins of directly adjacent solid cubes.
+	 * @param position	The given position.
+	 * @effect	Gets all directly adjacent cubes of the cube at the given position. Keeps the ones that are solid and checks them to
+	 * verify if they's connected to a border of the game world through other solid cubes or by itself. If not, they're caved-in.
+	 * @throws NullPointerException
+	 * 			The given position is not effective.
+	 * @throws IllegalArgumentException
+	 * 			The given position is not a valid position for this world.
+	 */
+	private void propagateCaveIn(PositionVector position) throws NullPointerException, IllegalArgumentException {
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("Position not located in this world!");
+		Set<Cube> directAdjacents = this.getDirectAdjacentCubes(this.getCube((int) position.getXArgument(), 
+				(int) position.getYArgument(), (int) position.getZArgument()));
+		for(Cube adjacent : directAdjacents) {
+			if(! adjacent.isSolid())
+				directAdjacents.remove(adjacent);
+			if(! this.connectedToBorder.isSolidConnectedToBorder((int) adjacent.getPosition().getXArgument(),
+					(int) adjacent.getPosition().getYArgument(), (int) adjacent.getPosition().getZArgument()))
+				this.caveIn((int) adjacent.getPosition().getXArgument(),
+					(int) adjacent.getPosition().getYArgument(), (int) adjacent.getPosition().getZArgument());
+		}
+	}
+	
+	/**
+	 * Return a set of all direct adjacent cubes of a given cube.
+	 * @param cube	The given cube.
+	 * @return	All the cubes that are directly adjacent to the given cube and that have a valid position for this world.
+	 * @throws IllegalArgumentException
+	 * 			The given cube is not located in this world.
+	 * @throws NullPointerException
+	 * 			The given cube is not effective.
+	 */
+	private Set<Cube> getDirectAdjacentCubes(Cube cube) throws IllegalArgumentException, NullPointerException {
+		if(! this.isValidPosition(cube.getPosition()))
+			throw new IllegalArgumentException("Given cube not located in this world");
+		int x = (int) cube.getPosition().getXArgument();
+		int y = (int) cube.getPosition().getYArgument();
+		int z = (int) cube.getPosition().getZArgument();
+		Set<Cube> directAdjacents = new HashSet<Cube>();
+		PositionVector[] allDirectAdjacents = {new PositionVector(x+1,y,z), new PositionVector(x-1,y,z), new PositionVector(x,y+1,z),
+				new PositionVector(x,y-1,z), new PositionVector(x,y,z+1), new PositionVector(x,y,z-1)};
+		for(PositionVector position : allDirectAdjacents){
+			if(this.isValidPosition(position))
+				directAdjacents.add(this.getCube((int) position.getXArgument(), (int) position.getYArgument(),
+						(int) position.getZArgument()));
+		}
+		return directAdjacents;
+	}
 	
 	/**
 	 * Return the number of units of this world.
@@ -460,48 +561,48 @@ public class World {
 	 * Return the unit list of this world.
 	 */
 	@Basic @Raw
-	public ArrayList<Unit> getUnitList() {
-		return this.unitList;
+	public Set<Unit> getUnitSet() {
+		return this.unitSet;
 	}
 	
 	/**
-	 * Check whether the given unit list is a valid unit list for
+	 * Check whether the given unit set is a valid unit set for
 	 * any world.
 	 *  
-	 * @param  unit list
-	 *         The unit list to check.
+	 * @param  unitSet
+	 *         The unit set to check.
 	 * @return 
-	 *       | result == (unitList != null)	
+	 *       | result == (unitSet != null)	
 	*/
-	public static boolean isValidUnitList(ArrayList<Unit> unitList) {
-		return (unitList != null);
+	public static boolean isValidUnitSet(Set<Unit> unitSet) {
+		return (unitSet != null);
 	}
 	
 	/**
-	 * Set the unit list of this world to the given unit list.
+	 * Set the unit set of this world to the given unit set.
 	 * 
-	 * @param  unitList
-	 *         The new unit list for this world.
-	 * @post   The unit list of this new world is equal to
-	 *         the given unit list.
-	 *       | new.getUnitList() == unitList
+	 * @param  unitSet
+	 *         The new unit set for this world.
+	 * @post   The unit set of this new world is equal to
+	 *         the given unit set.
+	 *       | new.getUnitSet() == unitSet
 	 * @throws NullPointerException
-	 *         The given unit list is not a valid unit list for any
+	 *         The given unit list is not a valid unit set for any
 	 *         world.
-	 *       | ! isValidUnitList(getUnitList())
+	 *       | ! isValidUnitSet(getUnitSet())
 	 */
 	@Raw
-	public void setUnitList(ArrayList<Unit> unitList) 
+	public void setUnitSet(Set<Unit> unitSet) 
 			throws NullPointerException {
-		if (! isValidUnitList(unitList))
+		if (! isValidUnitSet(unitSet))
 			throw new NullPointerException();
-		this.unitList = unitList;
+		this.unitSet = unitSet;
 	}
 	
 	/**
-	 * Variable registering the unit list of this world.
+	 * Variable registering the unit set of this world.
 	 */
-	private ArrayList<Unit> unitList;
+	private Set<Unit> unitSet;
 	
 	/**
 	 * Add a given unit to this world.
@@ -513,7 +614,7 @@ public class World {
 		try{
 			if(maxNumberOfUnits == 100)
 				throw new IllegalStateException();
-			this.getUnitList().add(unit);
+			this.getUnitSet().add(unit);
 			int[] cubePosition = unit.getCubePosition();
 			this.getCube(cubePosition[0], cubePosition[1], cubePosition[2]).addAsContent(unit);
 		}
@@ -529,8 +630,8 @@ public class World {
 	 * 			A unit with this generated name and position and with random attribute values is initialized and added to this world.
 	 */
 	public void spawnUnit(boolean enableDefaultBehaviour) {
-		PositionVector position = Unit.centrePosition(this.randomPosition());
-		String name = "Unit" + this.getUnitList().size();
+		PositionVector position = Unit.centrePosition(this.randomStandingPosition());
+		String name = "Unit" + this.getUnitSet().size();
 		Unit unit = new Unit(position, name);
 		if(enableDefaultBehaviour == true)
 			unit.startDefaultBehaviour();
@@ -547,6 +648,156 @@ public class World {
 		int y = generator.nextInt(this.getNbCubesY());
 		int z = generator.nextInt(this.getNbCubesZ());
 		return new PositionVector(x,y,z);
+	}
+	
+	/**
+	 * Return a position at which a game object can stand.
+	 * @return	A position that is a valid standing position for a game object.
+	 */
+	public PositionVector randomStandingPosition() {
+		PositionVector position = this.randomPosition();
+		while(! isValidStandingPosition(position)){
+			position = this.randomPosition();
+		}
+		return position;
+	}
+	
+	/**
+	 * Check whether a game object could stand at the given position.
+	 * @param position	The given position.
+	 * @return	True, if and only if the cube at the given position is passable and either the adjacent cube underneath it is solid
+	 * or the cube has z = 0.
+	 * @throws	NullPointerException
+	 * 			The given position is not effective.
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not located in this world.
+	 */
+	private boolean isValidStandingPosition(PositionVector position) throws NullPointerException, IllegalArgumentException {
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("position is not located in this world!");
+		Cube cube = this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
+		if(cube.isSolid())
+			return false;
+		if(position.getZArgument() == 0)
+			return true;
+		if(this.hasSolidUnderneath(cube))
+			return true;
+		else
+			return false;
+	}
+	
+	/**
+	 * Check whether the cube underneath a given cube is solid.
+	 * @param cube	The given cube.
+	 * @return	True if and only if the cube directly underneath the given cube is solid.
+	 * @throws NullPointerException
+	 * 			The given cube is not effective.
+	 * @throws IllegalArgumentException
+	 * 			The given cube has a position outside of this world.
+	 * @throws	IllegalArgumentException
+	 * 			The given cube is located at z = 0.
+	 */
+	private boolean hasSolidUnderneath(Cube cube) throws NullPointerException, IllegalArgumentException {
+		if(! this.isValidPosition(cube.getPosition()))
+			throw new IllegalArgumentException("Position of cube is invalid!");
+		if(! (cube.getPosition().getZArgument() == 0))
+			throw new IllegalArgumentException("There is no cube underneath the given cube!");
+		int x = (int) cube.getPosition().getXArgument();
+		int y = (int) cube.getPosition().getYArgument();
+		int z = (int) cube.getPosition().getZArgument();
+		int z2 = z - 1;
+		return this.getCube(x, y, z2).isSolid();
+		
+		
+	}
+	
+	/**
+	 * Check whether a given position is located within this world.
+	 * @param position	The given position.
+	 * @return	True is and only if all components are greater then or equal to zero and smaller than or equal to the number of cubes
+	 * in this world along the respective component direction.
+	 */
+	private boolean isValidPosition(PositionVector position) {
+		double x = position.getXArgument();
+		double y = position.getYArgument();
+		double z = position.getZArgument();
+		if((x <= this.getNbCubesX()) && (y <= this.getNbCubesY()) && (z <= this.getNbCubesZ()) && (x >= 0) && (y >= 0) && (z >= 0))
+			return true;
+		else
+			return false;
+	}
+	
+	
+	/**
+	 * Return the material set of this world.
+	 */
+	@Basic @Raw
+	public Set<Material> getMaterialSet() {
+		return this.materialSet;
+	}
+	
+	/**
+	 * Check whether the given material set is a valid material set for
+	 * any world.
+	 *  
+	 * @param  material set
+	 *         The material set to check.
+	 * @return 
+	 *       | result == (materialSet != null)
+	*/
+	public static boolean isValidMaterialSet(Set<Material> materialSet) {
+		return (materialSet != null);
+	}
+	
+	/**
+	 * Set the material set of this world to the given material set.
+	 * 
+	 * @param  materialSet
+	 *         The new material set for this world.
+	 * @post   The material set of this new world is equal to
+	 *         the given material set.
+	 *       | new.getMaterialSet() == materialSet
+	 * @throws NullPointerException
+	 *         The given material set is not a valid material set for any
+	 *         world.
+	 *       | ! isValidMaterialSet(getMaterialSet())
+	 */
+	@Raw
+	public void setMaterialSet(Set<Material> materialSet) 
+			throws NullPointerException {
+		if (! isValidMaterialSet(materialSet))
+			throw new NullPointerException();
+		this.materialSet = materialSet;
+	}
+	
+	/**
+	 * Variable registering the material set of this world.
+	 */
+	private Set<Material> materialSet;
+	
+	/**
+	 * Add a given material to this world.
+	 * @param material	The given material.
+	 * @effect	The given material is added to the material set of this world.
+	 */
+	private void addMaterial(Material material){
+		this.getMaterialSet().add(material);
+	}
+	
+	/**
+	 * Advance the time for this world by a given amount of time.
+	 * @param dt	The given amount of time.
+	 * @effect	Time is advanced with the given amount of time for all units and and materials of this world.
+	 * @throws	IllegalArgumentException
+	 * 			Time is either negative or equal to or greater then 0.2s.
+	 */
+	public void advanceTime(double dt)throws IllegalArgumentException {
+		if ((dt < 0) || (dt >= 0.2)) 
+			throw new IllegalArgumentException();
+		for(Unit unit : this.getUnitSet())
+			unit.advanceTime(dt);
+		for(Material material : this.getMaterialSet())
+			material.advanceTime(dt);
 	}
 	
 }

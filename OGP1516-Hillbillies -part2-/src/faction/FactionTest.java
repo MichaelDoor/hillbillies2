@@ -1,4 +1,4 @@
-package world;
+package faction;
 
 import static org.junit.Assert.*;
 
@@ -8,11 +8,13 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import hillbillies.part2.listener.DefaultTerrainChangeListener;
+import objects.Unit;
+import position.PositionVector;
 
-
-public class WorldTest {
-
+public class FactionTest {
+	
+	private Faction testFaction;
+	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
 	}
@@ -23,6 +25,7 @@ public class WorldTest {
 
 	@Before
 	public void setUp() throws Exception {
+		this.testFaction = new Faction();
 	}
 
 	@After
@@ -30,16 +33,14 @@ public class WorldTest {
 	}
 
 	@Test
-	public void constructor_LegalCase() {
-		int nbX = 10;
-		int nbY = 20;
-		int nbZ = 30;
-
-		World world =  new World(new int[nbX][nbY][nbZ], new DefaultTerrainChangeListener());
-		assertEquals(nbX, world.getNbCubesX());
-		assertEquals(nbY, world.getNbCubesY());
-		assertEquals(nbZ, world.getNbCubesZ());
+	public void addUnit_IllegalCase() {
+		int i = 0;
+		while(i < 52){
+			Unit unit = (new Unit(new PositionVector(0, 0, 0), "Ikke"));
+			testFaction.addUnit(unit);
+			i++;
+		}
+		assertEquals(50, testFaction.getUnitSet().size());
 	}
-	
 
 }

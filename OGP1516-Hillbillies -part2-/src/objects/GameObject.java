@@ -120,5 +120,18 @@ public abstract class GameObject {
 	 * Variable registering the weight of this unit.
 	 */
 	protected int weight;
+	
+	/**
+	 * Advance time for this game object by a given amount of time.
+	 * @param dt	The given amount of time.
+	 * @throws	IllegalArgumentException
+	 * 			Time is either negative or equal to or greater then 0.2s.
+	 */
+	public void advanceTime(double dt)throws IllegalArgumentException {
+		if ((dt < 0) || (dt >= 0.2)) {
+			throw new IllegalArgumentException();
+		}
+		
+	}
 
 }

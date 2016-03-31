@@ -784,6 +784,7 @@ public class Unit extends GameObject {
 	 * @throws	IllegalArgumentException
 	 * 			Time is either negative or equal to or greater then 0.2s.
 	 */
+	@Override
 	public void advanceTime(double time) 
 								throws IllegalArgumentException {
 		if ((time < 0) || (time >= 0.2)) {
