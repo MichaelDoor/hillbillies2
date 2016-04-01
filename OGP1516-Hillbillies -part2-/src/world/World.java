@@ -266,7 +266,7 @@ public class World {
 	 * @throws	IllegalArgumentException
 	 * 			The given coordinates are out of the bounds of this world.
 	 */
-	private Cube getCube(int x, int y, int z) throws IllegalArgumentException {
+	public Cube getCube(int x, int y, int z) throws IllegalArgumentException {
 		if ((x < 0) || (y < 0) || (z <0) || (x > this.getNbCubesX()) || (y > this.getNbCubesY()) || (z > this.getNbCubesZ()))
 				throw new IllegalArgumentException("Coordinates out of bounds!");
 		return this.getCubeMatrix()[x][y][z];
@@ -998,5 +998,74 @@ public class World {
 				throw new IllegalStateException("Max amount of factions reached and all full!");
 			return smallestFaction;
 		}
+	}
+	
+	/**
+	 * Return the position of the cube under the cube of the given position in this world.
+	 * @param position	The given position.
+	 * @return	The position of the cube directly under the cube of the given position.
+	 * @throws IllegalArgumentException
+	 * 			The given position is at the bottom of this world.
+	 * @throws	NullPointerException
+	 * 			The given position is not effective.
+	 */
+	public PositionVector getPositionUnderneath(PositionVector position) throws IllegalArgumentException, NullPointerException {
+		if(position.getZArgument() == 0)
+			throw new IllegalArgumentException("Given position is at the bottom of this world, nothing underneath!");
+		int x = (int) position.getXArgument();
+		int y = (int) position.getYArgument();
+		int z = (int) position.getZArgument() - 1;
+		return this.getCube(x, y, z).getPosition();
+	}
+	
+	/**
+	 * Return a set with all adjacent positions in this world of a given position in this world.
+	 * @param position	The given position.
+	 * @return	A set with all the adjacent positions of the given position, that are valid positions of this world.
+	 * @throws	NullPointerException
+	 * 			The given position is not effective.
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this world.
+	 */
+	public Set<PositionVector> getAllAdjacentPositions(PositionVector position) throws NullPointerException, IllegalArgumentException {
+		if(position == null)
+			throw new NullPointerException();
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("The given position is not a valid position for this world!");
+		int x = (int) position.getXArgument();
+		int y = (int) position.getYArgument();
+		int z = (int) position.getZArgument();
+		PositionVector[] allPossibilities = {new PositionVector(x-1,y,z), new PositionVector(x+1, y, z),
+				new PositionVector(x, y-1, z), new PositionVector(x, y+1, z), new PositionVector(x, y, z-1),
+				new PositionVector(x,y,z+1), new PositionVector(x+1,y+1,z+1), new PositionVector(x-1,y+1,z+1),
+				new PositionVector(x+1,y-1,z+1), new PositionVector(x+1,y+1,z-1), new PositionVector(x-1,y+1,z-1),
+				new PositionVector(x-1,y-1,z+1), new PositionVector(x+1,y-1,z-1), new PositionVector(x-1,y-1,z-1),
+				new PositionVector(x+1,y+1,z), new PositionVector(x-1,y-1,z), new PositionVector(x+1,y-1,z),
+				new PositionVector(x-1,y+1,z), new PositionVector(x+1,y,z+1), new PositionVector(x-1,y,z+1),
+				new PositionVector(x+1,y,z-1), new PositionVector(x-1,y,z-1), new PositionVector(x+1,y+1,z), 
+				new PositionVector(x-1,y+1,z), new PositionVector(x+1,y-1,z), new PositionVector(x-1,y-1,z)};
+		HashSet<PositionVector> validAdjacents = new HashSet<PositionVector>();
+		for(PositionVector adjacent : allPossibilities){
+			if(this.isValidPosition(adjacent))
+				validAdjacents.add(adjacent);
+		}
+		return validAdjacents;
+	}
+	
+	/**
+	 * Check whether the cube at a given position is solid.
+	 * @param position	The given position.
+	 * @return	True if and only if the cube at the given position is solid.
+	 * @throws IllegalArgumentException
+	 * 			The given position is not a valid position.
+	 * @throws NullPointerException
+	 * 			The given position is not effective.
+	 */
+	public boolean isSolidPosition(PositionVector position) throws IllegalArgumentException, NullPointerException {
+		if(position == null)
+			throw new NullPointerException();
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("Not a valid position for this world!");
+		return this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument()).isSolid();
 	}
 }

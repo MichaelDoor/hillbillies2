@@ -82,7 +82,7 @@ import faction.Faction;
  *         unit.
  *       | isValidWorld(getWorld())
  * @author Michaël Dooreman
- * @version	0.21
+ * @version	0.22
  */
 public class Unit extends GameObject {
 	
@@ -797,6 +797,10 @@ public class Unit extends GameObject {
 	 * Let time advance for this unit for a given amount of time.
 	 * @param time	The given amount of time.
 	 * @effect	This unit's activity status is checked.
+	 * 			If this unit is falling, and it reached it's next position and destination, it either continues falling if it can,
+	 * 			else it's activity status is set to default and it's velocity to the zero vector.
+	 * 			If this unit is falling and has not yet reached it's next position and destination, it moves in the fall direction.
+	 * 			If this unit should fall, it falls and time advances for the given time.
 	 * 			If this unit is doing nothing and it's default behaviour is activated, it'll do a random action.
 	 * 			If the unit is attacking, it continues it's attack.
 	 * 			If it's minimum rest counter isn't zero yet, it'll continue to rest until the counter reaches zero, then it'll 
@@ -817,10 +821,28 @@ public class Unit extends GameObject {
 			throw new IllegalArgumentException();
 		}
 		String status = this.getActivityStatus();
-		if ((status.equals("default") && (this.getDefaultBehaviour() == true) && ((this.getUnitPosition()).equals(this.getNextPosition())
+		if(status.equals("fall"))
+			if((this.getUnitPosition().equals(this.getNextPosition())) && (this.getUnitPosition().equals(this.getDestination()))){
+				if(this.fallCheck()){
+					this.fall();
+					this.advanceTime(time);
+				}
+				else{
+					this.setActivityStatus("default");
+					this.setCurrentVelocity(new PositionVector(0, 0, 0));
+				}
+			}
+			else{
+				this.miniMove(time, 1);
+			}
+		else if(this.fallCheck()){
+				this.fall();
+				this.advanceTime(time);
+		}
+		else if ((status.equals("default") && (this.getDefaultBehaviour() == true) && ((this.getUnitPosition()).equals(this.getNextPosition())
 				&& (this.getUnitPosition()).equals(this.getDestination())))){
-			this.randomBehaviour();
-			status = this.getActivityStatus(); 
+				this.randomBehaviour();
+				status = this.getActivityStatus(); 
 			}
 		else if (status.equals("attack")) {
 				this.doAttack(time);
@@ -1117,7 +1139,7 @@ public class Unit extends GameObject {
 	private static boolean isValidActivityStatus(String activityStatus) {
 		return ((activityStatus.equals("move") || (activityStatus.equals("work")) || 
 					(activityStatus.equals("rest")) || (activityStatus.equals("attack")) ||
-						(activityStatus.equals("default"))));
+						(activityStatus.equals("default")) || (activityStatus.equals("fall"))));
 	}
 	
 	/**
@@ -2661,4 +2683,38 @@ public class Unit extends GameObject {
 	public void changeWorld(World world){
 		this.setWorld(world);
 	}
+	
+	
+	private boolean fallCheck(){
+		Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(this.getUnitPosition());
+		for(PositionVector adjacent : adjacents){
+			if(this.getWorld().isSolidPosition(adjacent))
+				return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Makes this unit fall.
+	 * @effect	This unit's activity status is set to 'fall', its next position and destination are set to the center of the cube
+	 * 			underneath the cube this unit is occupying.
+	 * 			| this.setActivityStatus("fall")
+	 * 			| this.setNextPosition(this.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 * 			| this.setDestination(this.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 */
+	private void fall() {
+		this.setActivityStatus("fall");
+		PositionVector cubePosition = new PositionVector(this.getCubePosition()[0], 
+									this.getCubePosition()[1], this.getCubePosition()[2]);
+		PositionVector fallToPosition = this.centrePosition(this.getWorld().getPositionUnderneath(cubePosition));
+		this.setNextPosition(fallToPosition);
+		this.setDestination(fallToPosition);
+		this.setCurrentVelocity(fallVelocity);
+	}
+	
+	/**
+	 * Variable registering the falling velocity of any unit.
+	 */
+	private static PositionVector fallVelocity = new PositionVector(0, 0, -3);
+	
 }
