@@ -623,7 +623,7 @@ public class World {
 	 */
 	public void addUnit(Unit unit) throws IllegalStateException {
 		try{
-			if(maxNumberOfUnits == 100)
+			if(this.getUnitSet().size() == maxNumberOfUnits)
 				throw new IllegalStateException();
 			if((this.getFactionSet().size() > maxNbOfFactions - 1) && (! this.hasAsFaction(unit.getFaction()))){
 				throw new IllegalArgumentException();
@@ -650,7 +650,7 @@ public class World {
 	 */
 	public void spawnUnit(boolean enableDefaultBehaviour) {
 		PositionVector position = Unit.centrePosition(this.randomStandingPosition());
-		String name = "Unit" + this.getUnitSet().size();
+		String name = "Unit";
 		Unit unit = new Unit(position, name, this.autoFaction());
 		if(enableDefaultBehaviour == true)
 			unit.startDefaultBehaviour();
@@ -708,19 +708,17 @@ public class World {
 	/**
 	 * Check whether the cube underneath a given cube is solid.
 	 * @param cube	The given cube.
-	 * @return	True if and only if the cube directly underneath the given cube is solid.
+	 * @return	True if and only if the cube directly underneath the given cube is solid or the given cube has z = 0;
 	 * @throws NullPointerException
 	 * 			The given cube is not effective.
 	 * @throws IllegalArgumentException
 	 * 			The given cube has a position outside of this world.
-	 * @throws	IllegalArgumentException
-	 * 			The given cube is located at z = 0.
 	 */
 	private boolean hasSolidUnderneath(Cube cube) throws NullPointerException, IllegalArgumentException {
 		if(! this.isValidPosition(cube.getPosition()))
 			throw new IllegalArgumentException("Position of cube is invalid!");
 		if(! (cube.getPosition().getZArgument() == 0))
-			throw new IllegalArgumentException("There is no cube underneath the given cube!");
+			return true;
 		int x = (int) cube.getPosition().getXArgument();
 		int y = (int) cube.getPosition().getYArgument();
 		int z = (int) cube.getPosition().getZArgument();
