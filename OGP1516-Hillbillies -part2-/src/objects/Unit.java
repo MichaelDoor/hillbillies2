@@ -1,6 +1,7 @@
 package objects;
 import java.util.*;
 import position.PositionVector;
+import world.World;
 import be.kuleuven.cs.som.annotate.*;
 import faction.Faction;
 
@@ -74,8 +75,14 @@ import faction.Faction;
  * @invar  The faction of each unit must be a valid faction for any
  *         unit.
  *       | isValidFaction(getFaction())
+ * @invar  The experience of each unit must be a valid experience for any
+ *         unit.
+ *       | isValidExp(getExp())
+ * @invar  The world of each unit must be a valid world for any
+ *         unit.
+ *       | isValidWorld(getWorld())
  * @author Michaël Dooreman
- * @version	0.20
+ * @version	0.21
  */
 public class Unit extends GameObject {
 	
@@ -135,6 +142,10 @@ public class Unit extends GameObject {
 	 *       	| this.setDefaultBehaviour(false)
 	 * @effect 	The faction of this new unit is set to the given faction.
 	 *       	| this.setFaction(faction)
+	 * @effect 	The experience of this new unit is set to 0.
+	 *       	| this.setExp(0)
+	 * @effect 	The world of this new unit is set to null.
+	 *       	| this.setWorld(null)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -171,6 +182,8 @@ public class Unit extends GameObject {
 		this.setAutRestCounter(0);
 		this.setDefaultBehaviour(false);
 		this.setFaction(faction);
+		this.setExp(0);
+		this.setWorld(null);
 	}
 	
 	/**
@@ -361,9 +374,10 @@ public class Unit extends GameObject {
 	 *          weight.
 	 *       	| if (isValidWeight(weight))
 	 *       	|   then new.getWeight() == weight
-	 * @post	If the given weight is more than 200, this unit's weight is set to 200.
-	 * 			| if (weight > 200)
-	 * 			| 	this.weight = 200
+	 * @post	If the given weight is more than the maximum attribute value for any unit, this unit's weight is set to 
+	 * 			the maximum attribute value for any unit..
+	 * 			| if (weight > maxAttValue)
+	 * 			| 	this.weight = maxAttValue
 	 * @post	If the given weight is smaller than half of the sum of this unit's agility and strength,
 	 * 			this unit's weight is set to half of the sum of this unit's agility and strength.
 	 * 			| if (weight < (this.getStrength()+this.getAgility())/2)
@@ -373,8 +387,8 @@ public class Unit extends GameObject {
 	public void setWeight(int weight) {
 		if (isValidWeight(weight))
 			this.weight = weight;
-		if (weight > 200) {
-			this.weight = 200;
+		if (weight > maxAttValue) {
+			this.weight = maxAttValue;
 		}
 		if (weight < (this.getStrength()+this.getAgility())/2) {
 			this.weight = (this.getStrength()+this.getAgility())/2;
@@ -413,9 +427,10 @@ public class Unit extends GameObject {
 	 *          strength.
 	 *       	| if (isValidStrength(strength))
 	 *       	|   then new.getStrength() == strength
-	 * @post	If the given strength is bigger than 200, this unit's strength is set to 200.
-	 * 			| if (strength > 200)
-	 * 			| 	this.strength = 200
+	 * @post	If the given strength is bigger than the maximum attribute value for any unit, this unit's strength is set to 
+	 * 			the maximum attribute value for any unit.
+	 * 			| if (strength > maxAttValue)
+	 * 			| 	this.strength = maxAttValue
 	 * @post	If the given strength is smaller than 1, this unit's strength is set to 1.
 	 * 			| if (strength < 1)	
 	 * 			| 	this.strength = 1
@@ -424,8 +439,8 @@ public class Unit extends GameObject {
 	public void setStrength(int strength) {
 		if (isValidStrength(strength))
 			this.strength = strength;
-		if (strength > 200) {
-			this.strength = 200;
+		if (strength > maxAttValue) {
+			this.strength = maxAttValue;
 		}
 		if (strength < 1) {
 			this.strength = 1;
@@ -468,9 +483,9 @@ public class Unit extends GameObject {
 	 *          agility.
 	 *       	| if (isValidAgility(agility))
 	 *       	|   then new.getAgility() == agility
-	 * @post	If the given agility is bigger than 200, this unit's agility is set to 200.
-	 * 			| if (agility > 200) 
-	 *			|	this.agility = 200
+	 * @post	If the given agility is bigger than the maximum attribute value, this unit's agility is set to 200.
+	 * 			| if (agility > maxAttValue) 
+	 *			|	this.agility = maxAttValue
 	 * @post	If the given agility is smaller than 1, this unit's agility is set to 1.
 	 * 			| if (agility < 1)
 	 * 			| 	this.agility = 1
@@ -479,8 +494,8 @@ public class Unit extends GameObject {
 	public void setAgility(int agility) {
 		if (isValidAgility(agility))
 			this.agility = agility;
-		if (agility > 200) {
-			this.agility = 200;
+		if (agility > maxAttValue) {
+			this.agility = maxAttValue;
 		}
 		if (agility < 1) {
 			this.agility = 1;
@@ -523,9 +538,10 @@ public class Unit extends GameObject {
 	 *          toughness.
 	 *       	| if (isValidToughness(toughness))
 	 *       	|   then new.getToughness() == toughness
-	 * @post	If the given toughness is bigger than 200, this unit's toughness is set to 200.
-	 * 			| if (toughness > 200)
-	 * 			| 	this.toughness = 200
+	 * @post	If the given toughness is bigger than the maximum attribute value for any unit, this unit's toughness is set to 
+	 * 			the maximum attribute value for any unit.
+	 * 			| if (toughness > maxAttValue)
+	 * 			| 	this.toughness = maxAttValue
 	 * @post	If the given toughness is smaller than 1, this unit's toughness is set to 1.
 	 * 			| if (toughness < 1)
 	 * 			| 	this.toughness = 1
@@ -534,8 +550,8 @@ public class Unit extends GameObject {
 	public void setToughness(int toughness) {
 		if (isValidToughness(toughness))
 			this.toughness = toughness;
-		if (toughness > 200) {
-			this.toughness = 200;
+		if (toughness > maxAttValue) {
+			this.toughness = maxAttValue;
 		}
 		if (toughness < 1) {
 			this.toughness = 1;
@@ -2447,4 +2463,202 @@ public class Unit extends GameObject {
 	 * Variable registering the faction of this unit.
 	 */
 	private Faction faction;
+		
+
+	/**
+	 * Return the experience of this unit.
+	 */
+	@Basic @Raw
+	public int getExp() {
+		return this.exp;
+	}
+	
+	/**
+	 * Check whether the given experience is a valid experience for
+	 * any unit.
+	 *  
+	 * @param  experience
+	 *         The experience to check.
+	 * @return 
+	 *       | result == ((exp >= 0) && (exp <= maxExp))
+	*/
+	public static boolean isValidExp(int exp) {
+		return ((exp >= 0) && (exp <= maxExp));
+	}
+	
+	/**
+	 * Set the experience of this unit to the given experience.
+	 * 
+	 * @param  exp
+	 *         The new experience for this unit.
+	 * @post   The experience of this new unit is equal to
+	 *         the given experience.
+	 *       | new.getExp() == exp
+	 * @throws IllegalArgumentException
+	 *         The given experience is not a valid experience for any
+	 *         unit.
+	 *       | ! isValidExp(getExp())
+	 */
+	@Raw
+	public void setExp(int exp) 
+			throws IllegalArgumentException {
+		if (! isValidExp(exp))
+			throw new IllegalArgumentException();
+		this.exp = exp;
+	}
+	
+	/**
+	 * Variable registering the experience of this unit.
+	 */
+	private int exp;
+	
+	/**
+	 * Variable registering the maximum amount of experience any unit can have.
+	 */
+	private static int maxExp = 10;
+	
+	/**
+	 * Let this unit gain a given amount of experience.
+	 * @param exp	The given amount of experience.
+	 * @effect	If the sum of this unit's current experience and the given experience exceeds the maximum experience for any unit,
+	 * 			This unit levels up until until the sum  of it's current experience and the given experience minus the maximum
+	 * 			experience for any unit times the times this unit leveled up is smaller than the maximum experience for any unit.
+	 * 			This unit's experience is set to the sum of it's current experience and the given experience modulo the maximum	
+	 * 			experience for any unit.
+	 * 			| int newExp = this.getExp() + exp
+	 *			| while(newExp >= maxExp)
+	 *			| 	newExp = newExp - maxExp
+	 *			|	this.levelUp()
+	 *			| this.setExp(this.getExp() + exp)
+	 * @effect	This unit's experience is set to the sum of it's current experience and the given experience.
+	 * 			| this.setExp(newExp)
+	 * @throws	IllegalArgumentException
+	 * 			The given experience is negative.
+	 * 			| exp < 0
+	 */
+	private void gainExp(int exp){
+		int newExp = this.getExp() + exp;
+		while(newExp >= maxExp)
+			newExp = newExp - maxExp;
+			this.levelUp();
+		this.setExp(newExp);
+	}
+	
+	/**
+	 * Levels up this unit.
+	 * @effect	A random attribute (agility, strength or toughness) is picked. When the attribute has already reached it's
+	 * 			maximum value, level up is invoked recursively, else the attribute is increased by 1. This unit's attributes are
+	 * 			refreshed.
+	 * 			| if(attribute == 0/1/2)
+	 *			| 	if(this.getAgility/Strength/Toughness() == maxAttValue)
+	 *			|		this.levelUp()
+	 *			| 	else
+	 *			|		this.setAgility/Strength/Toughness(this.getAgility/Strength/Toughness() + 1)
+	 *			| this.refreshAttributes()
+	 * @throws	IllegalStateException
+	 *			This unit's agility, strength and toughness have already reached their maximum value.
+	 *			| (this.getAgility() == maxAttValue) && (this.getStrength() == maxAttValue) && (this.getToughness() == maxAttValue)
+	 * @note	When this unit's agility, strength and toughness have already reached their maximum value, the level up request
+	 * 			is silently rejected.
+	 */
+	private void levelUp() throws IllegalStateException {
+		try{
+			if((this.getAgility() == maxAttValue) && (this.getStrength() == maxAttValue) && (this.getToughness() == maxAttValue))
+				throw new IllegalStateException();
+			Random generator = new Random();
+			int attribute = generator.nextInt(3);
+			if(attribute == 0)
+				if(this.getAgility() == maxAttValue)
+					this.levelUp();
+				else
+					this.setAgility(this.getAgility() + 1);
+			if(attribute == 1)
+				if(this.getStrength() == maxAttValue)
+					this.levelUp();
+				else
+					this.setStrength(this.getStrength() + 1);
+			if(attribute == 2)
+				if(this.getToughness() == maxAttValue)
+					this.levelUp();
+				else
+					this.setToughness(this.getToughness() + 1);
+			this.refreshAttributes();
+		}
+		catch (IllegalStateException exc){
+			
+		}
+	}
+	
+	/**
+	 * Variable registering the maximum value any attribute of any unit can have.
+	 */
+	private static int maxAttValue = 200;
+	
+	/**
+	 * Refreshes this unit's derived attributes.
+	 * @effect	This unit's maximum hitpoints and stamina are recalculated and set.
+	 * 			| this.setMaxHP(calcMaxHPStam(getWeight(), getToughness()))
+	 * 			| this.setMaxStamina(calcMaxHPStam(getWeight(), getToughness()))
+	 */
+	private void refreshAttributes(){
+		this.setMaxHP(calcMaxHPStam(getWeight(), getToughness()));
+		this.setMaxStamina(calcMaxHPStam(getWeight(), getToughness()));
+	}
+		
+	/**
+	 * Return the world of this unit.
+	 */
+	@Basic @Raw
+	public World getWorld() {
+		return this.world;
+	}
+	
+	/**
+	 * Check whether the given world is a valid world for
+	 * any unit.
+	 *  
+	 * @param  world
+	 *         The world to check.
+	 * @return 
+	 *       | result == (world == null) || (world.canHaveAsUnit(this)
+	*/
+	public boolean isValidWorld(World world) {
+		return ((world == null) || (world.canHaveAsUnit(this)));
+	}
+	
+	/**
+	 * Set the world of this unit to the given world.
+	 * 
+	 * @param  world
+	 *         The new world for this unit.
+	 * @post   The world of this new unit is equal to
+	 *         the given world.
+	 *       | new.getWorld() == world
+	 * @throws IllegalArgumentException
+	 *         The given world is not a valid world for this
+	 *         unit.
+	 *       | ! isValidWorld(getWorld())
+	 */
+	@Raw
+	public void setWorld(World world) 
+			throws NullPointerException, IllegalArgumentException {
+		if (! isValidWorld(world))
+			throw new IllegalArgumentException();
+		this.world = world;
+	}
+	
+	/**
+	 * Variable registering the world of this unit.
+	 */
+	private World world;
+	
+	/**
+	 * Change this unit's current world to a given world.
+	 * @param world	The given world.
+	 * @effect	This unit's world is set to the given world.
+	 * 			|	this.setWorld(world)
+	 */
+	public void changeWorld(World world){
+		this.setWorld(world);
+	}
 }

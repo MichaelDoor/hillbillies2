@@ -615,31 +615,73 @@ public class World {
 	 * @param unit	The given unit.
 	 * @effect	If the unit is from a faction that does not exist in this world, this faction is added to this world. the unit is added
 	 * 			to this world's unit set and to the cube corresponding to its position.
-	 * @throws IllegalStateException
-	 * 			This world can't contain any more units.
 	 * @throws	IllegalArgumentException
-	 * 			The given unit has a faction that does not belong to this world and this world has already reached it's maximum
-	 * 			amount of allowed factions.
+	 * 			This world can not have the given unit as one of it's units.
 	 */
-	public void addUnit(Unit unit) throws IllegalStateException {
+	public void addUnit(Unit unit) throws IllegalArgumentException {
 		try{
-			if(this.getUnitSet().size() == maxNumberOfUnits)
-				throw new IllegalStateException();
-			if((this.getFactionSet().size() > maxNbOfFactions - 1) && (! this.hasAsFaction(unit.getFaction()))){
+			if(! this.canHaveAsUnit(unit))
 				throw new IllegalArgumentException();
-			}
 			if(! this.hasAsFaction(unit.getFaction()))
 				this.addFaction(unit.getFaction());
 			this.getUnitSet().add(unit);
 			int[] cubePosition = unit.getCubePosition();
 			this.getCube(cubePosition[0], cubePosition[1], cubePosition[2]).addAsContent(unit);
 		}
-		catch (IllegalStateException exc) {
-			
-		}
 		catch (IllegalArgumentException exc){
 			
 		}
+	}
+	
+	/**
+	 * Remove a given unit from this world.
+	 * @param unit	The given unit.
+	 * @effect	The given unit is removed from his world's unit set.
+	 * @throws	IllegalArgumentException
+	 * 			This world does not have the given unit in it's unit set.
+	 * @throws	NullPointerException
+	 * 			The given unit is not effective.
+	 */
+	public void removeUnit(Unit unit) throws NullPointerException {
+		if(unit == null)
+			throw new NullPointerException();
+		if(! this.hasAsUnit(unit))
+			throw new IllegalArgumentException("This world does not have the given unit as one of its units");
+		this.getUnitSet().remove(unit);
+	}
+	
+	/**
+	 * Check whether this world has the given unit.
+	 * @param unit	The given unit.
+	 * @return	True if and only if this world's unit set contains the given unit.
+	 * @throws	NullPointerException
+	 * 			The given unit is not effective.
+	 */
+	public boolean hasAsUnit(Unit unit) throws NullPointerException {
+		if(unit == null)
+			throw new NullPointerException();
+		return this.getUnitSet().contains(unit);
+	}
+	
+	/**
+	 * Check whether this world can have the given unit as a unit.
+	 * @param unit	The given unit.
+	 * @return	True if and only if the unit's position is in this world and the unit is not already in this world and this world
+	 * 			has not yet reached it's maximum amount of allowed units and when this world has reached its maximum amount
+	 * 			of allowed faction, the given unit does not have a faction that's not in this world, and the given unit's
+	 * 			cube position refers to a passable cube in this world.
+	 * @throws 	NullPointerException
+	 * 			The given unit is not effective.
+	 */
+	public boolean canHaveAsUnit(Unit unit) throws NullPointerException {
+		if(unit == null)
+			throw new NullPointerException();
+		boolean flag1 = (this.isValidPosition(unit.getUnitPosition()));
+		boolean flag2 = (! this.hasAsUnit(unit));
+		boolean flag3 = (this.getUnitSet().size() < maxNumberOfUnits);
+		boolean flag4 = (!((this.getFactionSet().size() > maxNbOfFactions - 1) && (! this.hasAsFaction(unit.getFaction()))));
+		boolean flag5 = (! this.getCube(unit.getCubePosition()[0],unit.getCubePosition()[1],unit.getCubePosition()[2]).isSolid());
+		return (flag1 && flag2 && flag3 && flag4 && flag5);
 	}
 	
 	/**
