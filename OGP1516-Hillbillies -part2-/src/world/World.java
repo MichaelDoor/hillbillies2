@@ -4,6 +4,7 @@ import java.util.*;
 
 import be.kuleuven.cs.som.annotate.*;
 import cube.*;
+import faction.Faction;
 import hillbillies.part2.listener.*;
 import hillbillies.util.*;
 import objects.*;
@@ -29,8 +30,11 @@ import position.PositionVector;
  * @invar  The object set of each world must be a valid object set for any
  *         world.
  *       | isValidObjectSet(getObjectSet())
+ * @invar  The faction set of each world must be a valid faction set for any
+ *         world.
+ *       | isValidFactionSet(getFactionSet())
  * @author Michaël
- * @version 0.6
+ * @version 0.7
  */
 public class World {
 	
@@ -52,6 +56,7 @@ public class World {
 	 * @effect The number of units of this new world is set to 0.
 	 * @effect The unit set of this new world is set to an empty hash set.
 	 * @effect The material set of this new world is set to an empty hash set.
+	 * @effect The faction set of this new world is set to a new hash set.
 	 */
 	public World(int[][][] terrainTypes, TerrainChangeListener modelListener)
 			throws NullPointerException {
@@ -64,6 +69,7 @@ public class World {
 		this.setNumberOfUnits(0);
 		this.setUnitSet(new HashSet<Unit>());
 		this.setMaterialSet(new HashSet<Material>());
+		this.setFactionSet(new HashSet<>());
 	}
 	
 	
@@ -607,18 +613,31 @@ public class World {
 	/**
 	 * Add a given unit to this world.
 	 * @param unit	The given unit.
+	 * @effect	If the unit is from a faction that does not exist in this world, this faction is added to this world. the unit is added
+	 * 			to this world's unit set and to the cube corresponding to its position.
 	 * @throws IllegalStateException
 	 * 			This world can't contain any more units.
+	 * @throws	IllegalArgumentException
+	 * 			The given unit has a faction that does not belong to this world and this world has already reached it's maximum
+	 * 			amount of allowed factions.
 	 */
 	public void addUnit(Unit unit) throws IllegalStateException {
 		try{
 			if(maxNumberOfUnits == 100)
 				throw new IllegalStateException();
+			if((this.getFactionSet().size() > maxNbOfFactions - 1) && (! this.hasAsFaction(unit.getFaction()))){
+				throw new IllegalArgumentException();
+			}
+			if(! this.hasAsFaction(unit.getFaction()))
+				this.addFaction(unit.getFaction());
 			this.getUnitSet().add(unit);
 			int[] cubePosition = unit.getCubePosition();
 			this.getCube(cubePosition[0], cubePosition[1], cubePosition[2]).addAsContent(unit);
 		}
 		catch (IllegalStateException exc) {
+			
+		}
+		catch (IllegalArgumentException exc){
 			
 		}
 	}
@@ -632,7 +651,7 @@ public class World {
 	public void spawnUnit(boolean enableDefaultBehaviour) {
 		PositionVector position = Unit.centrePosition(this.randomStandingPosition());
 		String name = "Unit" + this.getUnitSet().size();
-		Unit unit = new Unit(position, name);
+		Unit unit = new Unit(position, name, this.autoFaction());
 		if(enableDefaultBehaviour == true)
 			unit.startDefaultBehaviour();
 		this.addUnit(unit);
@@ -800,4 +819,144 @@ public class World {
 			material.advanceTime(dt);
 	}
 	
+		/** TO BE ADDED TO CLASS HEADING
+		 * 
+		 */
+	
+	
+	/**
+	 * Return the faction set of this world.
+	 */
+	@Basic @Raw @Model
+	private Set<Faction> getFactionSet() {
+		return this.factionSet;
+	}
+	
+	/**
+	 * Check whether the given faction set is a valid faction set for
+	 * any world.
+	 *  
+	 * @param  faction set
+	 *         The faction set to check.
+	 * @return 
+	 *       | result == (factionSet != null)
+	*/
+	private static boolean isValidFactionSet(Set<Faction> factionSet) {
+		return (factionSet != null);
+	}
+	
+	/**
+	 * Set the faction set of this world to the given faction set.
+	 * 
+	 * @param  factionSet
+	 *         The new faction set for this world.
+	 * @post   The faction set of this new world is equal to
+	 *         the given faction set.
+	 *       | new.getFactionSet() == factionSet
+	 * @throws NullPointerException
+	 *         The given faction set is not a valid faction set for any
+	 *         world.
+	 *       | ! isValidFactionSet(getFactionSet())
+	 */
+	@Raw @Model
+	private void setFactionSet(Set<Faction> factionSet) 
+			throws NullPointerException {
+		if (! isValidFactionSet(factionSet))
+			throw new NullPointerException();
+		this.factionSet = factionSet;
+	}
+	
+	/**
+	 * Variable registering the faction set of this world.
+	 */
+	private Set<Faction> factionSet;
+	
+	/**
+	 * Add a given faction to this world.
+	 * @param faction	The given faction.
+	 * @effect	The given faction is added to this world's faction set.
+	 * @throws IllegalStateException
+	 * 			This world already reached it's maximum amount of factions.
+	 * @throws	NullPointerException
+	 * 			The given faction is not effective.
+	 */
+	public void addFaction(Faction faction) throws  IllegalStateException, NullPointerException{
+		if(faction == null)
+			throw new NullPointerException();
+		try{if(! this.canHaveAsFaction(faction))
+				throw new IllegalStateException();
+			this.getFactionSet().add(faction);
+		}
+		catch (IllegalStateException exc) {
+			
+		}	
+	}
+	
+	/**
+	 * Remove the given faction from this world.
+	 * @param faction	The given faction.
+	 * @effect	Remove the given faction from this world's faction set.
+	 * @throws NullPointerException
+	 * 			The given faction is not effective.
+	 * @throws IllegalArgumentException
+	 * 			This world does not have the given faction in it's faction set.
+	 */
+	public void removeFaction(Faction faction) throws NullPointerException, IllegalArgumentException{
+		if(faction == null)
+			throw new NullPointerException();
+		if(! this.hasAsFaction(faction))
+			throw new IllegalArgumentException("Faction does not exist!");
+		this.getFactionSet().remove(faction);
+	}
+	
+	/**
+	 * Check whether this world can have a given faction.
+	 * @param faction	The given faction.	
+	 * @return	True if and only if this world has not already reached it's maximum amount of allowed factions or already has
+	 * 			this faction as in its faction set.
+	 */
+	private boolean canHaveAsFaction(Faction faction){
+		return (((this.getFactionSet().size()) < maxNbOfFactions) && (! this.getFactionSet().contains(faction)));
+	}
+	
+	/**
+	 * Check whether this world has a given faction as one of its factions.
+	 * @param faction	The given faction.
+	 * @return	True if and only if this world's faction set contains the given faction.
+	 * @throws NullPointerException
+	 * 			The given faction is not effective.
+	 */
+	private boolean hasAsFaction(Faction faction) throws NullPointerException {
+		if(faction == null)
+			throw new NullPointerException();
+		return this.getFactionSet().contains(faction);
+	}
+	
+	/**
+	 * Variable registering the maximum amount of factions allowed in any world.
+	 */
+	private static int maxNbOfFactions = 5;
+	
+	/**
+	 * Return an automatically chosen faction for a unit.
+	 * @return	A new faction if this world has not yet reached its maximum amount of allowed factions, or the faction with the least
+	 * 			amount of units, when this world has already reached its maximum amount of factions.
+	 */
+	private Faction autoFaction() throws IllegalStateException{
+		if(this.getFactionSet().size() < maxNbOfFactions)
+			return new Faction();
+		else{
+			Faction smallestFaction = null;
+			int smallestNbOfunits = Faction.getMaxNbOfUnits();
+			for(Faction faction : this.getFactionSet()){
+				int factionSize = faction.getUnitSet().size();
+				if(factionSize < smallestNbOfunits)
+					smallestFaction = faction;
+					smallestNbOfunits = factionSize;
+			}
+			if(smallestFaction == null)
+				throw new IllegalStateException("Max amount of factions reached and all full!");
+			return smallestFaction;
+		}
+	}
 }

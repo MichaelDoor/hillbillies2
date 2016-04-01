@@ -44,7 +44,7 @@ public class Faction {
 	 * @return 
 	 *       | result == (unitSet != null)
 	*/
-	public static boolean isValidUnitSet(HashSet<Unit> unitSet) {
+	private static boolean isValidUnitSet(HashSet<Unit> unitSet) {
 		return (unitSet != null);
 	}
 	
@@ -61,8 +61,8 @@ public class Faction {
 	 *         faction.
 	 *       | ! isValidUnitSet(getUnitSet())
 	 */
-	@Raw
-	public void setUnitSet(HashSet<Unit> unitSet) 
+	@Raw @Model
+	private void setUnitSet(HashSet<Unit> unitSet) 
 			throws NullPointerException {
 		if (! isValidUnitSet(unitSet))
 			throw new NullPointerException();
@@ -130,5 +130,13 @@ public class Faction {
 	 * Variable registering the maximum amount of units that can belong to a faction.
 	 */
 	private static int maxNbOfUnits = 50;
+	
+	/**
+	 * Return the maximum amount of units any faction can have.
+	 * @return	The maximum amount of units any faction can have.
+	 */
+	public static int getMaxNbOfUnits() {
+		return maxNbOfUnits;
+	}
 
 }

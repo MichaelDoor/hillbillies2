@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import faction.Faction;
 import position.PositionVector;
 
 
@@ -25,8 +26,8 @@ public class UnitTest {
 
 	@Before
 	public void setUp() throws Exception {
-		tester = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 50, 50);
-		target = new Unit(new PositionVector(2.0,1.0,1.0), "Ikke", 50, 50, 50, 50);
+		tester = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 50, 50, new Faction());
+		target = new Unit(new PositionVector(2.0,1.0,1.0), "Ikke", 50, 50, 50, 50, new Faction());
 	}
 
 	@After
@@ -35,7 +36,7 @@ public class UnitTest {
 
 	@Test
 	public void constructor_LegalCase() throws Exception {
-		Unit man = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 51, 52, 55);
+		Unit man = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 51, 52, 55, new Faction());
 		assertEquals((man.getUnitPosition()).equals((new PositionVector(1.5,1.5,1.5))), true);
 		assertEquals(((man.getName()).equals("Ikke")), true);
 		assertEquals(man.getStrength(),50);
@@ -46,34 +47,34 @@ public class UnitTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void constructor_IllegalPosition() throws Exception {
-		new Unit(new PositionVector(-1.0,1.0,1.0), "Ikke", 50, 50, 50, 50);
+		new Unit(new PositionVector(-1.0,1.0,1.0), "Ikke", 50, 50, 50, 50, new Faction());
 	}
 	@Test (expected = IllegalArgumentException.class)
 	public void constructor_IllegalName() throws Exception {
-		new Unit(new PositionVector(1.0,1.0,1.0), "ikke", 50, 50, 50, 50);
+		new Unit(new PositionVector(1.0,1.0,1.0), "ikke", 50, 50, 50, 50, new Faction());
 	}
 	
 	@Test
 	public void contructor_IllegalStrength() {
-		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 101, 50, 50, 50);
+		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 101, 50, 50, 50, new Faction());
 		assertEquals(temp.getStrength(),100);
 	}
 	
 	@Test
 	public void contructor_IllegalAgility() {
-		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 20, 50, 50);
+		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 20, 50, 50, new Faction());
 		assertEquals(temp.getAgility(),25);
 	}
 	
 	@Test
 	public void contructor_IllegalToughness() {
-		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 300, 50);
+		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 300, 50, new Faction());
 		assertEquals(temp.getToughness(),100);
 	}
 	
 	@Test
 	public void contructor_IllegalWeight() {
-		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 50, ((50+50)/2)-1);
+		Unit temp = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 50, ((50+50)/2)-1, new Faction());
 		assertEquals(temp.getWeight(),(temp.getStrength()+temp.getAgility())/2);
 	}
 	
@@ -312,6 +313,4 @@ public class UnitTest {
 		}
 		assertEquals(tester.getActivityStatus().equals("rest"),true);
 	}
-	
-	// change actions to defensive
 }

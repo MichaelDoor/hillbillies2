@@ -2,6 +2,7 @@ package objects;
 import java.util.*;
 import position.PositionVector;
 import be.kuleuven.cs.som.annotate.*;
+import faction.Faction;
 
 /**
  * @invar  The unitPosition of each unit must be a valid unitPosition for any
@@ -70,13 +71,16 @@ import be.kuleuven.cs.som.annotate.*;
  * @invar  The automatic rest counter of each unit must be a valid automatic rest counter for any
  *         unit.
  *       | isValidAutRestCounter(getAutRestCounter())
+ * @invar  The faction of each unit must be a valid faction for any
+ *         unit.
+ *       | isValidFaction(getFaction())
  * @author Michaël Dooreman
- * @version	0.19
+ * @version	0.20
  */
 public class Unit extends GameObject {
 	
 	/**
-	 * Initialize this new Unit with given position, name, weight, strength, agility, toughness.
+	 * Initialize this new Unit with given position, name, weight, strength, agility, toughness and faction.
 	 * 
 	 * @param  position		The position for this new unit.
 	 * @param  name			The name for this new unit.
@@ -84,6 +88,7 @@ public class Unit extends GameObject {
 	 * @param  agility		The agility for this new unit.
 	 * @param  toughness	The toughness for this new unit.
 	 * @param  weight		The weight for this new unit.
+	 * @param  faction 		The faction for this new unit.
 	 * @effect	The position of this new unit is set to the cube centre of the given position.
 	 * 			| this.setUnitPosition(centrePosition(position))
 	 * @post    The name of this new unit equals the given name.
@@ -128,6 +133,8 @@ public class Unit extends GameObject {
 	 *       	| this.setAutRestCounter(0)
 	 * @effect  The default behaviour of this new unit is set false.
 	 *       	| this.setDefaultBehaviour(false)
+	 * @effect 	The faction of this new unit is set to the given faction.
+	 *       	| this.setFaction(faction)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -138,7 +145,7 @@ public class Unit extends GameObject {
 	 * 			The position is not effective.
 	 * 			| position == null
 	 */
-	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight) 
+	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight, Faction faction) 
 													throws IllegalArgumentException, NullPointerException {
 		super(centrePosition(position));
 		this.setName(name);
@@ -163,15 +170,17 @@ public class Unit extends GameObject {
 		this.setMinRestCounter(0);
 		this.setAutRestCounter(0);
 		this.setDefaultBehaviour(false);
+		this.setFaction(faction);
 	}
 	
 	/**
 	 * Initialize this new Unit with given position, name and random attribute values.
 	 * @param  position		The position for this new unit.
 	 * @param  name			The name for this new unit.
-	 * @effect	A new unit is initialized with the given position, name and random initial attribute values.
+	 * @param  faction		The faction for this new unit.
+	 * @effect	A new unit is initialized with the given position, name and random initial attribute values and the given faction.
 	 * 			| this(position, name, randomInitialAttValue(), randomInitialAttValue(),
-	 * 										 randomInitialAttValue(), randomInitialAttValue())
+	 * 										 randomInitialAttValue(), randomInitialAttValue(), faction)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -182,8 +191,9 @@ public class Unit extends GameObject {
 	 * 			The position is not effective.
 	 * 			| position == null
 	 */
-	public Unit(PositionVector position, String name) throws IllegalArgumentException, NullPointerException {
-		this(position, name, randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue());
+	public Unit(PositionVector position, String name, Faction faction) throws IllegalArgumentException, NullPointerException {
+		this(position, name, randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(),
+				faction);
 	}
 	
 	
@@ -2390,4 +2400,51 @@ public class Unit extends GameObject {
 	 * A variable registering the minimum value a unit's attributes can have upon initialization.
 	 */
 	private static int minInitialAttValue = 25;
+	
+	/**
+	 * Return the faction of this unit.
+	 */
+	@Basic @Raw
+	public Faction getFaction() {
+		return this.faction;
+	}
+	
+	/**
+	 * Check whether the given faction is a valid faction for
+	 * any unit.
+	 *  
+	 * @param  faction
+	 *         The faction to check.
+	 * @return 
+	 *       | result == (faction != null)
+	*/
+	public static boolean isValidFaction(Faction faction) {
+		return (faction != null);
+	}
+	
+	/**
+	 * Set the faction of this unit to the given faction.
+	 * 
+	 * @param  faction
+	 *         The new faction for this unit.
+	 * @post   The faction of this new unit is equal to
+	 *         the given faction.
+	 *       | new.getFaction() == faction
+	 * @throws NullPointerException
+	 *         The given faction is not a valid faction for any
+	 *         unit.
+	 *       | ! isValidFaction(getFaction())
+	 */
+	@Raw
+	public void setFaction(Faction faction) 
+			throws NullPointerException {
+		if (! isValidFaction(faction))
+			throw new NullPointerException();
+		this.faction = faction;
+	}
+	
+	/**
+	 * Variable registering the faction of this unit.
+	 */
+	private Faction faction;
 }

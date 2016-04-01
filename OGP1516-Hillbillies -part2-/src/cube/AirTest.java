@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import faction.Faction;
 import objects.*;
 import objects.Unit;
 import position.PositionVector;
@@ -44,7 +45,7 @@ public class AirTest {
 	
 	@Test
 	public void addAsContent_LegalCase() {
-		Unit unit = new Unit(testAir.getPosition(), "Ikke", 50, 50, 50, 50);
+		Unit unit = new Unit(testAir.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
 		Log log = new Log(testAir.getPosition());
 		Boulder boulder = new Boulder(testAir.getPosition());
 		testAir.addAsContent(unit);
@@ -67,7 +68,7 @@ public class AirTest {
 	
 	@Test
 	public void hasProperContent_IllegalCase() {
-		Unit unit = new Unit(testAir.getPosition(), "Ikke", 50, 50, 50, 50);
+		Unit unit = new Unit(testAir.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
 		testAir.addAsContent(unit);
 		assertEquals(true, testAir.hasProperContent());
 		unit.moveTo(new PositionVector(1,0,0));

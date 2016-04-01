@@ -8,6 +8,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import faction.Faction;
 import objects.Boulder;
 import objects.Log;
 import objects.Unit;
@@ -45,7 +46,7 @@ public class WorkshopTest {
 	
 	@Test
 	public void addAsContent_LegalCase() {
-		Unit unit = new Unit(testWorkshop.getPosition(), "Ikke", 50, 50, 50, 50);
+		Unit unit = new Unit(testWorkshop.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
 		Log log = new Log(testWorkshop.getPosition());
 		Boulder boulder = new Boulder(testWorkshop.getPosition());
 		testWorkshop.addAsContent(unit);
@@ -68,7 +69,7 @@ public class WorkshopTest {
 	
 	@Test
 	public void hasProperContent_IllegalCase() {
-		Unit unit = new Unit(testWorkshop.getPosition(), "Ikke", 50, 50, 50, 50);
+		Unit unit = new Unit(testWorkshop.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
 		testWorkshop.addAsContent(unit);
 		assertEquals(true, testWorkshop.hasProperContent());
 		unit.moveTo(new PositionVector(1,0,0));

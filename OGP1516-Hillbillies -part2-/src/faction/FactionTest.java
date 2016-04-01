@@ -36,11 +36,10 @@ public class FactionTest {
 	public void addUnit_IllegalCase() {
 		int i = 0;
 		while(i < 52){
-			Unit unit = (new Unit(new PositionVector(0, 0, 0), "Ikke"));
+			Unit unit = (new Unit(new PositionVector(0, 0, 0), "Ikke", new Faction()));
 			testFaction.addUnit(unit);
 			i++;
 		}
 		assertEquals(50, testFaction.getUnitSet().size());
 	}
-
 }
