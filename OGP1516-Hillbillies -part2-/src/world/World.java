@@ -229,11 +229,11 @@ public class World {
 		Cube cube = null;
 		if (terrainNb == 0)
 			cube = new Air(cubePosition, content);
-		if (terrainNb == 1)
+		else if (terrainNb == 1)
 			cube = new Rock(cubePosition, content);
-		if (terrainNb == 2)
+		else if (terrainNb == 2)
 			cube = new Tree(cubePosition, content);
-		if (terrainNb == 3)
+		else if (terrainNb == 3)
 			cube = new Workshop(cubePosition, content);
 		else
 			cube = new Air(cubePosition, content);
@@ -314,8 +314,9 @@ public class World {
 			while(y < this.getNbCubesY()){
 				int z = 0;
 				while(z < this.getNbCubesZ()){
-					if (! cubeMatrix[x][y][z].isSolid())
+					if (! cubeMatrix[x][y][z].isSolid()){
 						this.connectedToBorder.changeSolidToPassable(x, y, z);
+					}
 					z++;
 				}
 				y++;
@@ -363,7 +364,7 @@ public class World {
 				int z = 0;
 				while(z < this.getNbCubesZ()){
 					if(cubeMatrix[x][y][z].isSolid())
-						if(this.connectedToBorder.isSolidConnectedToBorder(x, y, z))
+						if(! this.connectedToBorder.isSolidConnectedToBorder(x, y, z))
 							this.caveIn(x,y,z);
 					z++;
 				}
@@ -733,7 +734,7 @@ public class World {
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not located in this world.
 	 */
-	private boolean isValidStandingPosition(PositionVector position) throws NullPointerException, IllegalArgumentException {
+	public boolean isValidStandingPosition(PositionVector position) throws NullPointerException, IllegalArgumentException {
 		if(! this.isValidPosition(position))
 			throw new IllegalArgumentException("position is not located in this world!");
 		Cube cube = this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
@@ -741,46 +742,38 @@ public class World {
 			return false;
 		if(position.getZArgument() == 0)
 			return true;
-		if(this.hasSolidUnderneath(cube))
+		if(this.hasSolidAdjacent(cube))
 			return true;
 		else
 			return false;
 	}
 	
 	/**
-	 * Check whether the cube underneath a given cube is solid.
+	 * Check whether a given cube has a solid adjacent cube.
 	 * @param cube	The given cube.
-	 * @return	True if and only if the cube directly underneath the given cube is solid or the given cube has z = 0;
-	 * @throws NullPointerException
+	 * @return	True if and only if there are positions that are solid in the collection of the given cube's adjacent positions.
+	 * @throws	NullPointerException
 	 * 			The given cube is not effective.
-	 * @throws IllegalArgumentException
-	 * 			The given cube has a position outside of this world.
+	 * @throws	IllegalArgumentException
+	 * 			The given cube is not from this world.
 	 */
-	private boolean hasSolidUnderneath(Cube cube) throws NullPointerException, IllegalArgumentException {
-		if(! this.isValidPosition(cube.getPosition()))
-			throw new IllegalArgumentException("Position of cube is invalid!");
-		if(! (cube.getPosition().getZArgument() == 0))
-			return true;
-		int x = (int) cube.getPosition().getXArgument();
-		int y = (int) cube.getPosition().getYArgument();
-		int z = (int) cube.getPosition().getZArgument();
-		int z2 = z - 1;
-		return this.getCube(x, y, z2).isSolid();
-		
-		
+	public boolean hasSolidAdjacent(Cube cube) throws NullPointerException, IllegalArgumentException {
+		PositionVector cubePosition = cube.getPosition();
+		Set<PositionVector> allAdjacents = this.getAllAdjacentPositions(cubePosition);
+		return (! this.getSolidsFromPositionSet(allAdjacents).isEmpty());
 	}
 	
 	/**
 	 * Check whether a given position is located within this world.
 	 * @param position	The given position.
-	 * @return	True is and only if all components are greater then or equal to zero and smaller than or equal to the number of cubes
+	 * @return	True is and only if all components are greater then or equal to zero and smaller than the number of cubes
 	 * in this world along the respective component direction.
 	 */
-	private boolean isValidPosition(PositionVector position) {
+	public boolean isValidPosition(PositionVector position) {
 		double x = position.getXArgument();
 		double y = position.getYArgument();
 		double z = position.getZArgument();
-		if((x <= this.getNbCubesX()) && (y <= this.getNbCubesY()) && (z <= this.getNbCubesZ()) && (x >= 0) && (y >= 0) && (z >= 0))
+		if((x < this.getNbCubesX()) && (y < this.getNbCubesY()) && (z < this.getNbCubesZ()) && (x >= 0) && (y >= 0) && (z >= 0))
 			return true;
 		else
 			return false;
@@ -858,11 +851,6 @@ public class World {
 		for(Material material : this.getMaterialSet())
 			material.advanceTime(dt);
 	}
-	
-		/** TO BE ADDED TO CLASS HEADING
-		 * 
-		 */
-	
 	
 	/**
 	 * Return the faction set of this world.
@@ -1019,7 +1007,7 @@ public class World {
 	}
 	
 	/**
-	 * Return a set with all adjacent positions in this world of a given position in this world.
+	 * Return a set with all adjacent cube positions in this world of a given position in this world.
 	 * @param position	The given position.
 	 * @return	A set with all the adjacent positions of the given position, that are valid positions of this world.
 	 * @throws	NullPointerException
@@ -1047,7 +1035,8 @@ public class World {
 		HashSet<PositionVector> validAdjacents = new HashSet<PositionVector>();
 		for(PositionVector adjacent : allPossibilities){
 			if(this.isValidPosition(adjacent))
-				validAdjacents.add(adjacent);
+				validAdjacents.add(new PositionVector((int) adjacent.getXArgument(), 
+						(int) adjacent.getYArgument(), (int) adjacent.getZArgument()));
 		}
 		return validAdjacents;
 	}
@@ -1067,5 +1056,36 @@ public class World {
 		if(! this.isValidPosition(position))
 			throw new IllegalArgumentException("Not a valid position for this world!");
 		return this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument()).isSolid();
+	}
+	
+	/**
+	 * Return the positions of solid cubes from a given set of positions.
+	 * @param positionSet	The given set of positions.
+	 * @return	A subset of the given position set, containing only the positions that refer to solid cubes.
+	 * @throws	NullPointerException
+	 * 			The given set of positions is not effective.
+	 * @throws	IllegalArgumentException
+	 * 			The given set of positions contains positions that are not valid positions for this world.
+	 */
+	private Set<PositionVector> getSolidsFromPositionSet(Set<PositionVector> positionSet) 
+			throws NullPointerException, IllegalArgumentException {
+		if(positionSet == null)
+			throw new NullPointerException();
+		Set<PositionVector> solidSet = new HashSet<PositionVector>();
+		for(PositionVector position : positionSet)	{
+			if(this.isSolidPosition(position))
+				solidSet.add(position);
+		}
+		return solidSet;
+	}
+	
+	/**
+	 * Return whether the cube at a given position is solid and is connected to the border through adjacent solid cubes.
+	 * @param position	The given position.
+	 * @return	True if and only if the cube at the given position is solid and connected to the border.
+	 */
+	public boolean isSolidConnectedToBorder(PositionVector position){
+		return this.getConnectedToBorder().isSolidConnectedToBorder((int) position.getXArgument(), (int) position.getYArgument()
+				, (int) position.getZArgument());
 	}
 }

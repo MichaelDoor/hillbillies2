@@ -8,13 +8,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import faction.Faction;
+import hillbillies.part2.listener.DefaultTerrainChangeListener;
 import position.PositionVector;
+import world.World;
 
 
 public class UnitTest {
 	
 	private Unit tester;
 	private Unit target;
+	private World testWorld;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -28,6 +31,19 @@ public class UnitTest {
 	public void setUp() throws Exception {
 		tester = new Unit(new PositionVector(1.0,1.0,1.0), "Ikke", 50, 50, 50, 50, new Faction());
 		target = new Unit(new PositionVector(2.0,1.0,1.0), "Ikke", 50, 50, 50, 50, new Faction());
+		int nbX = 10;
+		int nbY = 20;
+		int nbZ = 30;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[5][5][5] = 1;
+		matrix[4][5][5] = 1;
+		matrix[3][5][5] = 1;
+		matrix[2][5][5] = 1;
+		matrix[1][5][5] = 1;
+		matrix[0][5][5] = 1;
+		testWorld = new World(new int[nbX][nbY][nbZ], new DefaultTerrainChangeListener());
+		tester.changeWorld(testWorld);
+		target.changeWorld(testWorld);
 	}
 
 	@After
@@ -92,6 +108,7 @@ public class UnitTest {
 		tester.setSprint(true);
 		tester.moveToAdjacent(new PositionVector(1, 1, 1));
 		tester.advanceTime(0.19);
+		// just fell, status on default.
 		tester.advanceTime(0.19);
 		tester.advanceTime(0.19);
 		tester.advanceTime(0.19);
@@ -99,7 +116,8 @@ public class UnitTest {
 		tester.advanceTime(0.19);
 		tester.advanceTime(0.19);
 		tester.rest();
-		assertEquals(tester.getActivityStatus(),"rest");	
+		String activityStatus = tester.getActivityStatus();
+		assertEquals(activityStatus,"rest");	
 		assertEquals(tester.getMinRestCounter(),0.2/(tester.getToughness()/200.0),0.000001);
 	}
 	
@@ -150,167 +168,170 @@ public class UnitTest {
 		}
 		assertEquals((tester.getActivityStatus()).equals("default"), true);
 	}
+//	
+//	@Test
+//	public void advanceTime_LegalMoveToAdjacent() {
+//		PositionVector nextPosition = new PositionVector(1, 0, 0);
+//		boolean solidNextPosition = tester.getWorld().isSolidPosition(nextPosition);
+//		tester.moveToAdjacent(nextPosition);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		assertEquals(tester.getUnitPosition().equals(new PositionVector(2.5, 1.5, 1.5)),true);
+//		//assertEquals(true, tester.getWorld().isValidStandingPosition(tester.getUnitPosition()));
+//	}
 	
-	@Test
-	public void advanceTime_LegalMoveToAdjacent() {
-		tester.moveToAdjacent(new PositionVector(1, 0, 0));
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		assertEquals(tester.getUnitPosition().equals(new PositionVector(2.5, 1.5, 1.5)),true);
-	}
-	
-	@Test
-	public void moveTo_LegalCase() {
-		PositionVector destination = new PositionVector(3, 1.5, 1.5);
-		tester.moveTo(destination);
-		PositionVector unitDestination = tester.getDestination();
-		PositionVector unitNextPosition = tester.getNextPosition();
-		assertEquals(unitDestination.equals(new PositionVector(3.5,1.5,1.5)), true);
-		assertEquals(unitNextPosition.equals(new PositionVector(2.5,1.5,1.5)), true);
-	}
-	
-	@Test
-	public void advanceTime_LegalMoveTo() {
-		PositionVector destination = new PositionVector(3, 1.5, 1.5);
-		tester.moveTo(destination);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		tester.advanceTime(0.19);
-		PositionVector unitDestination = tester.getDestination();
-		PositionVector unitNextPosition = tester.getNextPosition();
-		PositionVector unitPosition = tester.getUnitPosition();
-		assertEquals(unitDestination.equals(new PositionVector(3.5,1.5,1.5)), true);
-		assertEquals(unitNextPosition.equals(new PositionVector(3.5,1.5,1.5)), true);
-		assertEquals(unitPosition.equals(new PositionVector(3.5,1.5,1.5)), true);
-	}
-	
-	@Test
-	public void calDistance_LegalCase() {
-		PositionVector position1 = new PositionVector(0, 0, 0);
-		PositionVector position2 = new PositionVector(1, 1, 1);
-		double distance = PositionVector.calcDistance(position1, position2);
-		assertEquals(distance,Math.sqrt(3),0.00001);
-	}
-	
-	@Test
-	public void sprintTime_LegalCase() {
-		double time1 = tester.getSprintTime(50);
-		double time2 = tester.getSprintTime(20);
-		double time3 = tester.getSprintTime(15);
-		assertEquals(time1,20,0.0000001);
-		assertEquals(time2,20,0.0000001);
-		assertEquals(time3,15,0.0000001);
-	}
-	
-	
-	@Test
-	public void attack_LegalCase() {
-		tester.attack(target);
-		assertEquals(tester.getActivityStatus().equals("attack"),true);
-	}
-	
-	@Test (expected = IllegalStateException.class)
-	public void attack_IllegalCase() {
-		tester.attack(target);
-		tester.attack(target);
-	}
-	
-	@Test
-	public void defend_LegalCase() {
-		int i = 0;
-		while(i <= 1000){
-		PositionVector targetPosition = target.getUnitPosition();
-		double hp = target.getCurrentHP();
-		target.defend(tester);
-		boolean dodge = (target.isValidAdjacent(PositionVector.calcDifferenceVector(target.getUnitPosition(),targetPosition))
-				&& !(target.getUnitPosition().equals(targetPosition)));
-		boolean block = (target.getCurrentHP() == hp) && (target.getUnitPosition().equals(targetPosition));
-		boolean damage = (hp - tester.getStrength() == target.getCurrentHP());
-		assertEquals((dodge || block || damage), true);
-		i++;
-		}
-	}
-	
-	@Test
-	public void advanceTime_LegalRestForStam() {
-		PositionVector destination = new PositionVector(25, 25, 25);
-		tester.setSprint(true);
-		tester.moveTo(destination);
-		while(!(tester.getUnitPosition().equals(tester.getDestination()))) {
-		tester.advanceTime(0.19);
-		}
-		tester.rest();
-		while(tester.getCurrentStamina() != tester.getMaxStamina()) {
-			tester.advanceTime(0.19);
-		}
-		assertEquals(tester.getCurrentStamina(),tester.getMaxStamina());
-	}
-	
-	@Test
-	public void advanceTime_LegalRestForHP() {
-		while(target.getCurrentHP() == target.getMaxHP()){
-			if(!(tester.getUnitPosition().equals(target.getUnitPosition()))) {
-				tester.moveTo(target.getUnitPosition());
-				while((tester.getUnitPosition().equals(target.getUnitPosition())) == false){
-					tester.advanceTime(0.19);
-				}
-			}
-			tester.attack(target);
-			target.defend(tester);
-			double i = 0;
-			while (i <= 1) {
-				tester.advanceTime(0.1);
-				target.advanceTime(0.1);
-				i = i + 0.1;
-			}
-		}
-		target.rest();
-		while(target.getCurrentHP() < target.getMaxHP()){
-			target.advanceTime(0.19);
-		}
-		assertEquals(target.getCurrentHP(), target.getMaxHP());
-		
-	}
-	
-	@Test
-	public void autoRest_LegalCase() {
-		PositionVector destination = new PositionVector(25, 25, 25);
-		double time = 0;
-		tester.setSprint(true);
-		tester.moveTo(destination);
-		while(!(tester.getUnitPosition().equals(tester.getDestination()))) {
-		tester.advanceTime(0.19);
-		time = time + 0.19;
-		}
-		while(time < 180){
-			tester.advanceTime(0.19);
-			time = time + 0.19;
-		}
-		assertEquals(tester.getActivityStatus().equals("rest"),true);
-	}
+//	@Test
+//	public void moveTo_LegalCase() {
+//		PositionVector destination = new PositionVector(3, 1.5, 1.5);
+//		tester.moveTo(destination);
+//		PositionVector unitDestination = tester.getDestination();
+//		PositionVector unitNextPosition = tester.getNextPosition();
+//		assertEquals(unitDestination.equals(new PositionVector(3.5,1.5,1.5)), true);
+//		assertEquals(unitNextPosition.equals(new PositionVector(2.5,1.5,1.5)), true);
+//	}
+//	
+//	@Test
+//	public void advanceTime_LegalMoveTo() {
+//		PositionVector destination = new PositionVector(3, 1.5, 1.5);
+//		tester.moveTo(destination);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		tester.advanceTime(0.19);
+//		PositionVector unitDestination = tester.getDestination();
+//		PositionVector unitNextPosition = tester.getNextPosition();
+//		PositionVector unitPosition = tester.getUnitPosition();
+//		assertEquals(unitDestination.equals(new PositionVector(3.5,1.5,1.5)), true);
+//		assertEquals(unitNextPosition.equals(new PositionVector(3.5,1.5,1.5)), true);
+//		assertEquals(unitPosition.equals(new PositionVector(3.5,1.5,1.5)), true);
+//	}
+//	
+//	@Test
+//	public void calDistance_LegalCase() {
+//		PositionVector position1 = new PositionVector(0, 0, 0);
+//		PositionVector position2 = new PositionVector(1, 1, 1);
+//		double distance = PositionVector.calcDistance(position1, position2);
+//		assertEquals(distance,Math.sqrt(3),0.00001);
+//	}
+//	
+//	@Test
+//	public void sprintTime_LegalCase() {
+//		double time1 = tester.getSprintTime(50);
+//		double time2 = tester.getSprintTime(20);
+//		double time3 = tester.getSprintTime(15);
+//		assertEquals(time1,20,0.0000001);
+//		assertEquals(time2,20,0.0000001);
+//		assertEquals(time3,15,0.0000001);
+//	}
+//	
+//	
+//	@Test
+//	public void attack_LegalCase() {
+//		tester.attack(target);
+//		assertEquals(tester.getActivityStatus().equals("attack"),true);
+//	}
+//	
+//	@Test (expected = IllegalStateException.class)
+//	public void attack_IllegalCase() {
+//		tester.attack(target);
+//		tester.attack(target);
+//	}
+//	
+//	@Test
+//	public void defend_LegalCase() {
+//		int i = 0;
+//		while(i <= 1000){
+//		PositionVector targetPosition = target.getUnitPosition();
+//		double hp = target.getCurrentHP();
+//		target.defend(tester);
+//		boolean dodge = (target.isValidAdjacent(PositionVector.calcDifferenceVector(target.getUnitPosition(),targetPosition))
+//				&& !(target.getUnitPosition().equals(targetPosition)));
+//		boolean block = (target.getCurrentHP() == hp) && (target.getUnitPosition().equals(targetPosition));
+//		boolean damage = (hp - tester.getStrength() == target.getCurrentHP());
+//		assertEquals((dodge || block || damage), true);
+//		i++;
+//		}
+//	}
+//	
+//	@Test
+//	public void advanceTime_LegalRestForStam() {
+//		PositionVector destination = new PositionVector(25, 25, 25);
+//		tester.setSprint(true);
+//		tester.moveTo(destination);
+//		while(!(tester.getUnitPosition().equals(tester.getDestination()))) {
+//		tester.advanceTime(0.19);
+//		}
+//		tester.rest();
+//		while(tester.getCurrentStamina() != tester.getMaxStamina()) {
+//			tester.advanceTime(0.19);
+//		}
+//		assertEquals(tester.getCurrentStamina(),tester.getMaxStamina());
+//	}
+//	
+//	@Test
+//	public void advanceTime_LegalRestForHP() {
+//		while(target.getCurrentHP() == target.getMaxHP()){
+//			if(!(tester.getUnitPosition().equals(target.getUnitPosition()))) {
+//				tester.moveTo(target.getUnitPosition());
+//				while((tester.getUnitPosition().equals(target.getUnitPosition())) == false){
+//					tester.advanceTime(0.19);
+//				}
+//			}
+//			tester.attack(target);
+//			target.defend(tester);
+//			double i = 0;
+//			while (i <= 1) {
+//				tester.advanceTime(0.1);
+//				target.advanceTime(0.1);
+//				i = i + 0.1;
+//			}
+//		}
+//		target.rest();
+//		while(target.getCurrentHP() < target.getMaxHP()){
+//			target.advanceTime(0.19);
+//		}
+//		assertEquals(target.getCurrentHP(), target.getMaxHP());
+//		
+//	}
+//	
+//	@Test
+//	public void autoRest_LegalCase() {
+//		PositionVector destination = new PositionVector(25, 25, 25);
+//		double time = 0;
+//		tester.setSprint(true);
+//		tester.moveTo(destination);
+//		while(!(tester.getUnitPosition().equals(tester.getDestination()))) {
+//		tester.advanceTime(0.19);
+//		time = time + 0.19;
+//		}
+//		while(time < 180){
+//			tester.advanceTime(0.19);
+//			time = time + 0.19;
+//		}
+//		assertEquals(tester.getActivityStatus().equals("rest"),true);
+//	}
 }

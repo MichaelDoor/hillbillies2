@@ -119,9 +119,11 @@ public class PositionVector {
 	 * 			The vector is not effective.
 	 * 			| vector == null
 	 */
-	public boolean equals(PositionVector position) throws NullPointerException{
-		return ((this.getXArgument() == position.getXArgument()) && (this.getYArgument() == position.getYArgument())
-				&& (this.getZArgument() == position.getZArgument()));
+	@Override
+	public boolean equals(Object position) throws NullPointerException{
+		return ((this.getXArgument() == ((PositionVector) position).getXArgument()) 
+				&& (this.getYArgument() == ((PositionVector)position).getYArgument())
+				&& (this.getZArgument() == ((PositionVector)position).getZArgument()));
 	}
 	
 	/**
@@ -162,5 +164,15 @@ public class PositionVector {
 		double zSquare = Math.pow(zDifference,2);
 		double distance = Math.sqrt(xSquare+ySquare+zSquare);
 		return distance;
+	}
+	
+	@Override
+	public int hashCode(){
+		int x = (int) (this.getXArgument()*1000);
+		int y = (int) (this.getYArgument()*1000);
+		int z = (int) (this.getZArgument()*1000);
+		String code = x + "" + y + "" + z;
+		int hashCode = (int) Long.parseLong(code);
+		return hashCode;
 	}
 }

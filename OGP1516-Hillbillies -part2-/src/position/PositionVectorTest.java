@@ -2,6 +2,8 @@ package position;
 
 import static org.junit.Assert.*;
 
+import java.util.HashMap;
+
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -58,6 +60,18 @@ public class PositionVectorTest {
 		assertEquals(15.0, vector3.getXArgument(),0.000001);
 		assertEquals(18.0, vector3.getYArgument(), 0.000001);
 		assertEquals(21.0, vector3.getZArgument(), 0.000001);
+	}
+	
+	@Test
+	public void hashCode_MapCollection(){
+		PositionVector vector1 = new PositionVector(12,59,86);
+		PositionVector vector2 = new PositionVector(12,59,86);
+		int hash1 = vector1.hashCode();
+		int hash2 = vector2.hashCode();
+		assertEquals(true, hash1 == hash2);
+		HashMap<PositionVector,Integer> map = new HashMap<PositionVector,Integer>();
+		map.put(vector1, 0);
+		assertEquals(true, map.containsKey(vector2));
 	}
 
 }
