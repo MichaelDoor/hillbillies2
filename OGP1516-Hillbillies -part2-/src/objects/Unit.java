@@ -79,6 +79,12 @@ import faction.Faction;
  * @invar  The path queue of each unit must be a valid path queue for any
  *         unit.
  *       | isValidQueue(getQueue())
+ * @invar  The inventory of each unit must be a valid inventory for any
+ *         unit.
+ *       | isValidInventory(getInventory())
+ * @invar  The work position of each unit must be a valid work position for any
+ *         unit.
+ *       | isValidWorkPosition(getWorkPosition())
  * @author Michaël Dooreman
  * @version	0.23
  */
@@ -144,6 +150,10 @@ public class Unit extends GameObject {
 	 *       	| this.setExp(0)
 	 * @effect 	The path queue of this new unit is set to an empty hash map.
 	 *       	| this.setQueue(new HashMap<PositionVector, Integer>())
+	 * @effect 	The inventory of this new unit is set to an empty hash set.
+	 *       	| this.setInventory(new HashSet<Material>())
+	 * @effect 	The work position of this new unit is set to null.
+	 *       	| this.setWorkPosition(null)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -182,6 +192,8 @@ public class Unit extends GameObject {
 		this.setFaction(faction);
 		this.setExp(0);
 		this.setQueue(new HashMap<PositionVector, Integer>());
+		this.setInventory(new HashSet<Material>());
+		this.setWorkPosition(null);
 	}
 	
 	/**
@@ -1001,7 +1013,7 @@ public class Unit extends GameObject {
 	/**
 	 * Check whether a given position is located in an adjacent cube of the position of this unit.
 	 * @param position	The position to check.
-	 * @return	True if and only if the given position is in an adjacent cube of this unit's position.
+	 * @return	True if and only if the given position is in an adjacent cube of this unit's position and is a valid unit position.
 	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
 	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
 	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
@@ -1010,9 +1022,12 @@ public class Unit extends GameObject {
 	 *			|					|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == -1))
 	 *			|			&& (((Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1) 
 	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
-	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1)))
+	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1))
+	 *			|				&& (this.isValidUnitPosition(position)))))
 	 */
 	public boolean isValidAdjacent(PositionVector position) {
+		if(! this.isValidUnitPosition(position))
+			return false;
 		int positionX = (int) position.getXArgument();
 		int positionY = (int) position.getYArgument();
 		int positionZ = (int) position.getZArgument();
@@ -1028,7 +1043,6 @@ public class Unit extends GameObject {
 		return false;
 	}
 	
-	// recheck for redundant code and more correct specification
 	/**
 	 * Let's this unit move to the center of the adjacent cube of which a position in it is given, if the unit is not already moving
 	 * and the given position does not equal the unit's position.
@@ -1661,20 +1675,33 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Command this unit to work.
+	 * @param	targetPosition	The given target position.
 	 * @effect	The activity status of this unit is set to work mode.
 	 * 			| this.setActivityStatus("work")
+	 * @effect	This unit's work position is set to the given target position.
+	 * 			| this.setWorkPosition(centrePosition(targetPosition))
 	 * @effect	This unit's work time is reset.
 	 * 			| this.resetWorkTime()
+	 * @effect	This unit's orientation is set to face the cube of the target position.
+	 * 			| this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()))
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid adjacent position of this unit.
+	 * 			| (! this.isValidAdjacent(targetPosition))
 	 * @throws	IllegalStateException
-	 * 			This unit is attacking.
-	 * 			| this.getActivityStaus().equals("attack")
+	 * 			This unit is attacking or falling.
+	 * 			| this.getActivityStaus().equals("attack") || (this.getActivityStatus().equals("fall"))
 	 */
 	@Raw
-	public void work() throws IllegalStateException {
-		if(this.getActivityStatus().equals("attack"))	
+	public void work(PositionVector targetPosition) throws IllegalArgumentException, IllegalStateException {
+		if(! this.isValidAdjacent(targetPosition))
+			throw new IllegalArgumentException("Target cube is not an adjacent!");
+		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))	
 				throw new IllegalStateException();
 		this.setActivityStatus("work");
+		this.setWorkPosition(centrePosition(targetPosition));
 		this.resetWorkTime();
+		PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getUnitPosition(), targetPosition);
+		this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
 	}
 	
 	/**
@@ -1684,15 +1711,21 @@ public class Unit extends GameObject {
 	 * 			the work time.
 	 * 			| if (time < this.getWorkTime()) {
 	 * 			| 	this.setWorkTime(this.getWorkTime - time) }
-	 * @effect	This unit's work time is set to 0 and it's activity status to default, if the given time equals the unit's work time.
+	 * @effect	This unit's work time is set to 0 and it's activity status to default, if the given time equals the unit's work time,
+	 * 			the effect of the work performed takes effect and this unit's work position is set to null.
 	 * 			| if (time == this.getWorkTime()) {
 	 * 			| 	this.setWorkTime(0)
-	 * 			| 	this.setActivityStatus("default")}
-	 * @effect	This unit's work time is depleted and time advances if there's time left, activity status is set to default.
+	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.workEffect()
+	 * 			| 	this.setWorkPosition(null)
+	 * @effect	This unit's work time is depleted and time advances if there's time left, activity status is set to default,
+	 * 			the effect of the work performed takes effect and this unit's work position is set to null.
 	 * 			| if (this.getWorkTime() < time) {
 	 * 			| 	double restingTime = time - this.getWorkTime()
 	 * 			| 	this.setWorkTime(0)
 	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.workEffect()
+	 * 			| 	this.setWorkPosition(null)
 	 * 			| 	this.advanceTime(restingTime)}
 	 * @effect	The automatic rest counter is increased with the given amount of time.
 	 * 			| this.increaseAutRestCounter(time)
@@ -1707,17 +1740,80 @@ public class Unit extends GameObject {
 		if (this.getWorkTime() < time) {
 			 double restingTime = time - this.getWorkTime();
 			 this.setWorkTime(0);
+			 this.workEffect();
+			 this.setWorkPosition(null);
 			 this.setActivityStatus("default");
 			 this.advanceTime(restingTime);
 		}
 		if (time == this.getWorkTime()) {
 			 this.setWorkTime(0);
+			 this.workEffect();
+			 this.setWorkPosition(null);
 			 this.setActivityStatus("default");
 		}
 		if (time < this.getWorkTime()) {
 			 this.setWorkTime(this.getWorkTime() - time);
 		}
 		this.increaseAutRestCounter(time);
+	}
+	
+	/**
+	 * Invoke the effects caused by a labor of this unit.
+	 * @effect	If this unit's working position is not solid and its inventory is not empty, this unit empties its inventory.
+	 * 			| this.emptyInventory();
+	 * @effect	If this unit's working position refers to a workshop cube that contains a log and a boulder, this unit's equipment is 
+	 * 			improved.
+	 * 			| this.improveEquipment()
+	 * @effect	If this unit's working position contains a boulder and this unit's inventory is not full, it picks up the boulder.
+	 * 			| this.pickUpBoulder(this.getWorkPosition())
+	 * @effect	If this unit's working position contains a log and this unit's inventory is not full, it picks up the log.
+	 * 			| this.pickUpLog(this.getWorkPosition())
+	 * @effect	If this unit's working position refers to a wood cube or a rock cube, the cube collapses.
+	 * 			| this.getWorld().collapse(this.getWorkPosition())
+	 * @throws	IllegalStateException
+	 * 			This unit's work time is 0 or it's activity status is not 'work'.
+	 * 			| (this.getWorkTime() != 0) || (! this.getActivityStatus().equals("work"))
+	 */
+	private void workEffect() throws IllegalStateException {
+		if((this.getWorkTime() != 0) || (! this.getActivityStatus().equals("work")))
+			throw new IllegalStateException();
+		
+		if((! this.getWorld().isSolidPosition(this.getWorkPosition())) && (! this.getInventory().isEmpty()))
+			this.emptyInventory();
+		else if((this.getWorld().isWorkshop(this.getWorkPosition())) && (this.getWorld().containsLog(this.getWorkPosition()))
+				&& (this.getWorld().containsBoulder(this.getWorkPosition())))
+			this.improveEquipment();
+		else if((this.getWorld().containsBoulder(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
+			this.pickUpBoulder(this.getWorkPosition());
+		else if((this.getWorld().containsLog(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
+			this.pickUpLog(this.getWorkPosition());
+		else if((this.getWorld().isWood(this.getWorkPosition())) || (this.getWorld().isRock(this.getWorkPosition())))
+			this.getWorld().collapse(this.getWorkPosition());
+	}
+	
+	/**
+	 * Improve this unit's equipment.
+	 * @effect	The boulder and log at this unit's work position, which is a workshop, are consumed. This unit's weight is increaded
+	 * 			by 5 and it's toughness by 10.
+	 * 			| this.getWorld().removeMaterial(this.getWorld().getABoulder(this.getWorkPosition()))
+	 * 			| this.getWorld().removeMaterial(this.getWorld().getALog(this.getWorkPosition()))
+	 * 			| this.setWeight(this.getWeight() + 5)
+	 * 			| this.setToughness(this.getToughness() + 10)
+	 * @throws	IllegalStateException
+	 * 			This unit's work position does not refer to a workshop and does not contain a log and a boulder.
+	 * 			(!this.getWorld().isWorkshop(this.getWorkPosition())) || (! this.getWorld().containsBoulder(this.getWorkPosition()))
+	 *			| 	|| (this.getWorld().containsLog(this.getWorkPosition()))
+	 */
+	private void improveEquipment() throws IllegalStateException{
+		if((!this.getWorld().isWorkshop(this.getWorkPosition())) || (! this.getWorld().containsBoulder(this.getWorkPosition()))
+				|| (this.getWorld().containsLog(this.getWorkPosition())))
+			throw new IllegalStateException();
+		Boulder boulder = this.getWorld().getABoulder(this.getWorkPosition());
+		this.getWorld().removeMaterial(boulder);
+		Log log = this.getWorld().getALog(this.getWorkPosition());
+		this.getWorld().removeMaterial(log);
+		this.setWeight(this.getWeight() + 5);
+		this.setToughness(this.getToughness() + 10);
 	}
 	
 	/**
@@ -1734,8 +1830,9 @@ public class Unit extends GameObject {
 	 * 			| this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
 	 * 			| 	target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()))
 	 * @throws	IllegalStateException
-	 * 			This unit is already attacking.
-	 * 			| (this.getActivityStatus().equals("attack"))
+	 * 			This unit is already attacking or is falling or the target is falling.
+	 * 			| (this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
+	 * 			| 	|| (target.getActivityStatus().equals("fall"))
 	 * @throws	IllegalArgumentException
 	 * 			The target is not in an adjacent cube of this unit.
 	 * 			| this.isValidAdjacent(target.getUnitPosition())
@@ -1744,7 +1841,8 @@ public class Unit extends GameObject {
 	 * 			| target == null
 	 */
 	public void attack(Unit target) throws IllegalStateException, IllegalArgumentException, NullPointerException {
-		if ((this.getActivityStatus().equals("attack"))) {
+		if ((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall"))
+				|| (target.getActivityStatus().equals("fall"))) {
 			throw new IllegalStateException();
 		}
 		if (! this.isValidAdjacent(target.getUnitPosition())) {
@@ -2001,18 +2099,18 @@ public class Unit extends GameObject {
 	 * @effect	The automatic rest counter is reset.
 	 * 			| this.resetAutRestCounter()
 	 * @throws	IllegalStateException
-	 * 			The unit is in combat or is moving to an adjacent cube.
-	 * 			| (this.getActivityStatus() == "attack") || ( (this.getActivityStatus() == "move") &&
-	 * 			|														this.getUnitPosition() != this.getNextPosition())
+	 * 			The unit is in combat or is falling to an adjacent cube.
+	 * 			| (this.getActivityStatus() == "attack") || (this.getActivityStatus().equals("fall"))
 	 */
 	@Raw
 	public void rest() throws IllegalStateException{
-		if(!(this.getActivityStatus().equals("attack"))){
-			if((this.getDoubleHP() != this.getMaxHP()) || (this.getDoubleStamina() != this.getMaxStamina())){
-				this.setActivityStatus("rest");
-				this.resetMinRestCounter();
-				this.resetAutRestCounter();
-			}
+		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
+			throw new IllegalStateException();
+			
+		if((this.getDoubleHP() != this.getMaxHP()) || (this.getDoubleStamina() != this.getMaxStamina())){
+			this.setActivityStatus("rest");
+			this.resetMinRestCounter();
+			this.resetAutRestCounter();
 		}
 	}
 	/**
@@ -2805,4 +2903,186 @@ public class Unit extends GameObject {
 	 */
 	private Map<PositionVector, Integer> path;
 	
+	/**
+	 * Variable registering any unit's inventory capacity.
+	 */
+	private static int inventoryCapacity = 1;
+	
+	/**
+	 * Return the inventory of this unit.
+	 */
+	@Basic @Raw
+	public Set<Material> getInventory() {
+		return this.inventory;
+	}
+	
+	/**
+	 * Check whether the given inventory is a valid inventory for
+	 * any unit.
+	 *  
+	 * @param  inventory
+	 *         The inventory to check.
+	 * @return 
+	 *       | result == (inventory != null)
+	*/
+	public static boolean isValidInventory(Set<Material> inventory) {
+		return (inventory != null);
+	}
+	
+	/**
+	 * Set the inventory of this unit to the given inventory.
+	 * 
+	 * @param  inventory
+	 *         The new inventory for this unit.
+	 * @post   The inventory of this new unit is equal to
+	 *         the given inventory.
+	 *       | new.getInventory() == inventory
+	 * @throws NullPointerException
+	 *         The given inventory is not a valid inventory for any
+	 *         unit.
+	 *       | ! isValidInventory(getInventory())
+	 */
+	@Raw
+	public void setInventory(Set<Material> inventory) 
+			throws NullPointerException {
+		if (! isValidInventory(inventory))
+			throw new NullPointerException();
+		this.inventory = inventory;
+	}
+	
+	/**
+	 * Variable registering the inventory of this unit.
+	 */
+	private Set<Material> inventory;
+
+	/**
+	 * Add a given material to this unit's inventory.
+	 * @param material	The given material.
+	 * @effect	The given material is added to this unit's inventory and removed from this unit's world.
+	 * 			| this.getInventory().add(material)
+	 * 			| this.getWorld().removeMaterial(material)
+	 * @throws IllegalArgumentException
+	 */
+	public void addMaterialToInventory(Material material) throws IllegalArgumentException{
+		if(! this.canHaveAsMaterial(material))
+			throw new IllegalArgumentException();
+		this.getInventory().add(material);
+		this.getWorld().removeMaterial(material);
+	}
+	
+	/**
+	 * Check whether this unit can add a given material to it's inventory.
+	 * @param material	The given material.
+	 * @return	True if and only if the given material is effective, from the same world as this unit, has a position that is
+	 * 			an adjacent position for this unit and this unit's inventory is not full.
+	 * 			| result == (! material == null) && (material.getWorld().equals(this.getWorld()))
+	 * 			| 			&& (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), 
+	 * 			| 																		material.getCubePositionVector())))
+	 * 			| 				&& (this.getInventory().size() < inventoryCapacity)
+	 */
+	public boolean canHaveAsMaterial(Material material){
+		if(material == null)
+			return false;
+		if(! material.getWorld().equals(this.getWorld()))
+			return false;
+		if(! this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), material.getCubePositionVector())))
+			return false;
+		if(this.getInventory().size() == inventoryCapacity)
+			return false;
+		return true;			
+	}
+	
+	/**
+	 * Remove a given material from this unit's inventory.
+	 * @param material	The given material.
+	 * @effect	The given material is removed from his unit's inventory, the material's position is set 
+	 * 			to this unit's current position and is added to this unit's world.
+	 * 			| this.getInventory().remove(material)
+	 * 			| material.setUnitPosition(this.getUnitPosition())
+	 * 			| this.getWorld().addMaterial(material)
+	 * @throws IllegalArgumentException
+	 * 			The given material is not in this unit's inventory.
+	 * 			| ! this.inInventory(material)
+	 */
+	@Model
+	private void removeMaterial(Material material) throws IllegalArgumentException {
+		if(! this.inInventory(material))
+			throw new IllegalArgumentException("The given material is not in this unit's inventory");
+		this.getInventory().remove(material);
+		material.setUnitPosition(this.getUnitPosition());
+		this.getWorld().addMaterial(material);
+	}
+	
+	/**
+	 * Empty this unit's inventory.
+	 * @effect	All materials are removed from this unit's inventory.
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	this.removeMaterial(material)
+	 */
+	public void emptyInventory(){
+		for(Material material : this.getInventory())
+			this.removeMaterial(material);
+	}
+	
+	/**
+	 * Check whether a given material is in this unit's inventory.
+	 * @param material	The given material.
+	 * @return	True if and only if this unit's inventory contains the given material.
+	 * 			| result == this.getInventory().contains(material)
+	 */
+	public boolean inInventory(Material material){
+		if(material == null)
+			return false;
+		return this.getInventory().contains(material);
+	}
+	
+	/**
+	 * Return the work position of this unit.
+	 */
+	@Basic @Raw
+	public PositionVector getWorkPosition() {
+		return this.workPosition;
+	}
+	
+	/**
+	 * Check whether the given work position is a valid work position for
+	 * any unit.
+	 *  
+	 * @param  work position
+	 *         The work position to check.
+	 * @return True if and only if the given work position is null or a valid adjacent position for this unit.
+	 *       | result == ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), 
+	 *       | 																								workPosition)))
+	*/
+	public boolean isValidWorkPosition(PositionVector workPosition) {
+		return ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(),
+				workPosition))));
+	}
+	
+	/**
+	 * Set the work position of this unit to the given work position.
+	 * 
+	 * @param  workPosition
+	 *         The new work position for this unit.
+	 * @post   The work position of this new unit is equal to
+	 *         the given work position.
+	 *       | new.getWorkPosition() == workPosition
+	 * @throws IllegalArgumentException
+	 *         The given work position is not a valid work position for any
+	 *         unit.
+	 *       | ! isValidWorkPosition(getWorkPosition())
+	 */
+	@Raw
+	public void setWorkPosition(PositionVector workPosition) 
+			throws IllegalArgumentException {
+		if (! isValidWorkPosition(workPosition))
+			throw new IllegalArgumentException();
+		this.workPosition = workPosition;
+	}
+	
+	/**
+	 * Variable registering the work position of this unit.
+	 */
+	private PositionVector workPosition;
+
 }

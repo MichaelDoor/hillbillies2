@@ -1,5 +1,7 @@
 package cube;
-import objects.GameObject;
+import objects.*;
+import objects.Log;
+
 import java.util.*;
 import be.kuleuven.cs.som.annotate.*;
 import ogp.framework.util.Util;
@@ -32,14 +34,14 @@ public abstract class Cube {
 	 *         the given position.
 	 *       | this.setPosition(position)
 	 * @effect The content of this new cube is set empty.
-	 *       | this.setContent(new ArrayList<GameObject>())
+	 *       | this.setContent(new HashSet<GameObject>())
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position for this cube.
 	 */
 	public Cube(PositionVector position)
 			throws IllegalArgumentException {
 		this.setPosition(position);
-		this.setContent(new ArrayList<GameObject>());
+		this.setContent(new HashSet<GameObject>());
 	}
 	
 	/**
@@ -56,7 +58,7 @@ public abstract class Cube {
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position for this cube.
 	 */
-	public Cube(PositionVector position, ArrayList<GameObject> content)
+	public Cube(PositionVector position, HashSet<GameObject> content)
 			throws IllegalArgumentException {
 		this.setPosition(position);
 		this.setContent(content);
@@ -125,7 +127,7 @@ public abstract class Cube {
 	 * Return the content of this cube.
 	 */
 	@Basic @Raw
-	public ArrayList<GameObject> getContent() {
+	public HashSet<GameObject> getContent() {
 		return this.content;
 	}
 	
@@ -138,7 +140,7 @@ public abstract class Cube {
 	 * @return 
 	 *       | result == (content != null)
 	*/
-	public static boolean isValidContent(List<GameObject> content) {
+	public static boolean isValidContent(Set<GameObject> content) {
 		return (content != null);
 	}
 	
@@ -156,7 +158,7 @@ public abstract class Cube {
 	 *       | ! isValidContent(getContent())
 	 */
 	@Raw
-	private void setContent(ArrayList<GameObject> content) 
+	private void setContent(HashSet<GameObject> content) 
 			throws NullPointerException {
 		if (! isValidContent(content))
 			throw new NullPointerException();
@@ -166,7 +168,7 @@ public abstract class Cube {
 	/**
 	 * Variable registering the content of this cube.
 	 */
-	private ArrayList<GameObject> content;
+	private HashSet<GameObject> content;
 	
 	/**
 	 * Add an object to the content of this cube.
@@ -225,7 +227,7 @@ public abstract class Cube {
 	 * @return	True if and only if this cube can have each element of it's content as content.
 	 */
 	public boolean hasProperContent() {
-		ArrayList<GameObject> content = this.getContent();
+		HashSet<GameObject> content = this.getContent();
 		for (GameObject object : content)
 			if (! this.canHaveAsContent(object))
 				return false;
@@ -252,4 +254,66 @@ public abstract class Cube {
 	 */
 	@Immutable @Raw
 	public abstract boolean isSolid();
+	
+	/**
+	 * Check whether this cube has a log as content.
+	 * @return	True if and only if the content of this cube contains a game object that is a log.
+	 */
+	public boolean containsLog(){
+		HashSet<GameObject> content = this.getContent();
+		for(GameObject object : content){
+			if(object.getClass().equals(Log.class))
+				return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Check whether this cube has a boulder as content.
+	 * @return	True if and only if the content of this cube contains a game object that is a boulder.
+	 */
+	public boolean containsBoulder(){
+		HashSet<GameObject> content = this.getContent();
+		for(GameObject object : content){
+			if(object.getClass().equals(Boulder.class))
+				return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Return a boulder that's in this cube.
+	 * @return	A boulder that is in this cube's content.
+	 * @throws IllegalArgumentException
+	 * 			This cube does not contain a boulder.
+	 */
+	public Boulder getABoulder() throws IllegalArgumentException {
+		if(! this.containsBoulder())
+			throw new IllegalArgumentException("This cube does not contain a boulder!");
+		HashSet<GameObject> content = this.getContent();
+		Boulder boulder = null;
+		for(GameObject object : content){
+			if(object.getClass().equals(Boulder.class))
+				boulder = (Boulder) object;
+		}
+		return boulder;
+	}
+	
+	/**
+	 * Return a log that's in this cube.
+	 * @return	A log that is in this cube's content.
+	 * @throws IllegalArgumentException
+	 * 			This cube does not contain a log.
+	 */
+	public Log getALog() throws IllegalArgumentException {
+		if(! this.containsBoulder())
+			throw new IllegalArgumentException("This cube does not contain a log!");
+		HashSet<GameObject> content = this.getContent();
+		Log log = null;
+		for(GameObject object : content){
+			if(object.getClass().equals(Log.class))
+				log = (Log) object;
+		}
+		return log;
+	}
 }

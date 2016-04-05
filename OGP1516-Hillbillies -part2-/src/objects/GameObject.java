@@ -77,6 +77,7 @@ public abstract class GameObject {
 	 * @post   The unitPosition of this game object is equal to
 	 *         the given unitPosition.
 	 *       	| new.getUnitPosition().equals(position)
+	 * @effect	If this game object belongs to a world, this unit's world updates it's position of this gameObject.
 	 * @throws IllegalArgumentException
 	 *         The given unitPosition is not a valid unitPosition for any
 	 *         game object.
@@ -90,7 +91,15 @@ public abstract class GameObject {
 			throws IllegalArgumentException, NullPointerException {
 		if (! isValidUnitPosition(position))
 			throw new IllegalArgumentException("Out of bounds!");
+		PositionVector oldCubePosition = null;
+		if((this.getWorld() != null))
+			oldCubePosition = this.getCubePositionVector();
 		this.position = new PositionVector (position.getXArgument(), position.getYArgument(), position.getZArgument());
+		
+		if((oldCubePosition != null) && (! oldCubePosition.equals(new PositionVector((int) position.getXArgument(), 
+				(int) position.getYArgument(), (int) position.getZArgument())))){
+			this.getWorld().updateObjectPosition(this, oldCubePosition, this.getCubePositionVector());
+		}
 	}
 	
 	/**
@@ -207,6 +216,16 @@ public abstract class GameObject {
 	 */
 	public void changeWorld(World world){
 		this.setWorld(world);
+	}
+	/**
+	 * Return this game object's cube position as a position vector.
+	 * @return	The first second and third component of this game object's cube position.
+	 * 			| result == new PositionVector(this.getCubePosition()[0], this.getCubePosition()[1],
+	 * 																						 this.getCubePosition()[2])
+	 */
+	public PositionVector getCubePositionVector(){
+		int[] cubePosition = this.getCubePosition();
+		return new PositionVector(cubePosition[0], cubePosition[1], cubePosition[2]);
 	}
 
 }

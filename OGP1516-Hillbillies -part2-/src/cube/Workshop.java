@@ -1,6 +1,6 @@
 package cube;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 
 import objects.GameObject;
 import position.PositionVector;
@@ -11,7 +11,7 @@ public class Workshop extends PassableCube {
 		super(position);
 	}
 	
-	public Workshop(PositionVector position, ArrayList<GameObject> content) throws IllegalArgumentException {
+	public Workshop(PositionVector position, HashSet<GameObject> content) throws IllegalArgumentException {
 		super(position, content);
 	}
 
