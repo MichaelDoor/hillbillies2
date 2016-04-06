@@ -1305,4 +1305,47 @@ public class World {
 		}
 		return allAdjacents;
 	}
+	
+	/**
+	 * Return a set of all units in the cube of the given position and all units in adjacent cubes of the cube of the given position.
+	 * @param position	The given position.
+	 * @return	A set containing all the units of the cube of the given position and its adjacent cubes.
+	 * @throws IllegalArgumentException
+	 * 			The given position is not a valid position for this world.
+	 */
+	public Set<Unit> getAdjacentUnits(PositionVector position) throws IllegalArgumentException {
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("Not a valid position for this world!");
+		Set<PositionVector> adjacentStandingPositions = this.getAdjacentStandingPositions(position);
+		Set<Unit> adjacentUnits = new HashSet<Unit>();
+		adjacentStandingPositions.add(position);
+		for(PositionVector adjacent : adjacentStandingPositions){
+			Cube cube = this.getCube((int) adjacent.getXArgument(), (int) adjacent.getYArgument(), (int) adjacent.getZArgument());
+			adjacentUnits.addAll(cube.getUnits());
+		}
+		return adjacentUnits;
+	}
+	
+	/**
+	 * Get the enemies in neighboring cubes of this unit, including the unit's cube.
+	 * @param unit	The given unit.
+	 * @return	All adjacent units, that are not from this unit's faction.
+	 * @throws IllegalArgumentException
+	 * 			The given world does not have the given unit as one of it's units.
+	 * @throws NullPointerException
+	 * 			The given unit is not effective.
+	 */
+	public Set<Unit> getAdjacentEnemies(Unit unit) throws IllegalArgumentException, NullPointerException {
+		if(! this.hasAsUnit(unit))
+			throw new IllegalArgumentException("This world does not have the given unit as one of its units!");
+		Faction allyFaction = unit.getFaction();
+		Set<Unit> adjacentUnits = this.getAdjacentUnits(unit.getCubePositionVector());
+		for(Unit adjacentUnit : adjacentUnits){
+			if(adjacentUnit.getFaction().equals(allyFaction))
+				adjacentUnits.remove(adjacentUnit);
+		}
+		return adjacentUnits;
+	}
+	
+	
 }

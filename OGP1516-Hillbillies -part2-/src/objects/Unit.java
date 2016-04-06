@@ -2587,33 +2587,42 @@ public class Unit extends GameObject {
 	/**
 	 * Make this unit do a random action of either walking, sprinting, working, resting or moving.
 	 * 
-	 * @effect 	This unit either moves to a random position, starts to work at a random adjacent position or starts to rest.
+	 * @effect 	This unit either moves to a random position, starts to work at a random adjacent position, starts to rest or 
+	 * 			attacks a random enemy in an adjacent cube, if there is any.
 	 * 			| Random generator = new Random()
-	 *	 		|  int action = generator.nextInt(3)
-	 *			|  if (action == 0)
-	 *			|  	int sprint = generator.nextInt(2)
+	 *	 		| int action = generator.nextInt(4)
+	 *			| Unit potentialEnemy = this.getRandomAdjacentEnemy()
+	 *			| if(potentialEnemy == null)
+	 *			| 	action = generator.nextInt(3)
+	 *			| if (action == 0)
+	 *			| 	int sprint = generator.nextInt(2)
 	 *			|  	this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
 	 *			|  	this.setSprint(sprint == 1)
-	 *			|  if (action == 1)
+	 *			| if (action == 1)
 	 *			|  	this.work(this.randomAdjacent())
-	 *			|  if (action == 2) 
+	 *			| if (action == 2) 
 	 *			|  	this.rest()
+	 *			| if (action == 3)
+	 *			| 	this.attack(potentialEnemy)
 	 */
 	@Raw
 	private void randomBehaviour() throws IllegalArgumentException {
 		Random generator = new Random();
-		int action = generator.nextInt(3);
+		int action = generator.nextInt(4);
+		Unit potentialEnemy = this.getRandomAdjacentEnemy();
+		if(potentialEnemy == null)
+			action = generator.nextInt(3);
 		if (action == 0){
 			int sprint = generator.nextInt(2);
 			this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
 			this.setSprint(sprint == 1);
 		}
-		if (action == 1){
+		if (action == 1)
 			this.work(this.randomAdjacent());
-		}
-		if (action == 2) {
+		if (action == 2) 
 			this.rest();
-		}
+		if (action == 3)
+			this.attack(potentialEnemy);
 	}
 	
 	/**
@@ -3367,8 +3376,7 @@ public class Unit extends GameObject {
 	 *			| 	if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
 	 *			| 	validAdjacents.remove(adjacent)}
 	 *			| Random generator = new Random();
-	 *			| PositionVector[] positions = null;
-	 *			| positions = validAdjacents.toArray(positions);
+	 *			| PositionVector[] positions = (PositionVector[]) validAdjacents.toArray();
 	 *			| PositionVector position = positions[generator.nextInt(positions.length)];
 	 *			| result == new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
 	 *			| 		position.getZArgument() + generator.nextDouble())
@@ -3386,10 +3394,24 @@ public class Unit extends GameObject {
 				validAdjacents.remove(adjacent);
 		}
 		Random generator = new Random();
-		PositionVector[] positions = null;
-		positions = validAdjacents.toArray(positions);
+		PositionVector[] positions = (PositionVector[]) validAdjacents.toArray();
 		PositionVector position = positions[generator.nextInt(positions.length)];
 		return new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
 				position.getZArgument() + generator.nextDouble());
+	}
+	
+	/**
+	 * Returns a random enemy that is located in a neighboring cube of this unit or in this unit's cube.
+	 * @return	Null if there aren't any adjacent enemies.
+	 * 			| result == null
+	 * @return	A random enemy from all the adjacent enemies of this unit.
+	 * 			| result == adjacentEnemies[(new Random()).nextInt((Unit[]) this.getWorld().getAdjacentEnemies(this).toArray().length)]
+	 */
+	private Unit getRandomAdjacentEnemy() {
+		Random generator = new Random();
+		Unit[] adjacentEnemies = (Unit[]) this.getWorld().getAdjacentEnemies(this).toArray();
+		if(adjacentEnemies.length == 0)
+			return null;
+		return adjacentEnemies[generator.nextInt(adjacentEnemies.length)];
 	}
 }
