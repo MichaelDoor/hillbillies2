@@ -1784,9 +1784,9 @@ public class Unit extends GameObject {
 				&& (this.getWorld().containsBoulder(this.getWorkPosition())))
 			this.improveEquipment();
 		else if((this.getWorld().containsBoulder(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
-			this.pickUpBoulder(this.getWorkPosition());
+			this.pickUpMaterial(this.getWorld().getABoulder(this.getWorkPosition()));
 		else if((this.getWorld().containsLog(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
-			this.pickUpLog(this.getWorkPosition());
+			this.pickUpMaterial(this.getWorld().getALog(this.getWorkPosition()));
 		else if((this.getWorld().isWood(this.getWorkPosition())) || (this.getWorld().isRock(this.getWorkPosition())))
 			this.getWorld().collapse(this.getWorkPosition());
 	}
@@ -1816,6 +1816,39 @@ public class Unit extends GameObject {
 		this.setToughness(this.getToughness() + 10);
 	}
 	
+	
+	/**
+	 * Make this unit pick up a given material.
+	 * @param material	The given material.
+	 * @effect	The given material is added to this unit's inventory, the given material is removed from this unit's world.
+	 * 			| this.addMaterialToInventory(material)
+	 * 			| this.getWorld().removeMaterial(material)
+	 * @throws NullPointerException
+	 * 			The given material is not effective.
+	 * 			| material == null
+	 * @throws IllegalArgumentException
+	 * 			This unit's activity status is not 'work' or this unit's world does have the given material or
+	 * 			the given material is not in the cube to which this unit's work position refers or this unit's inventory is full.
+	 * 			| (! this.getActivityStatus().equals("work")) 
+	 * 			| 	|| (! this.getWorld().hasAsMaterial(material))
+	 * 			| 		|| (! material.getCubePositionVector().equals(new PositionVector((int)this.getWorkPosition().getXArgument(), 
+	 * 			| 						(int)this.getWorkPosition().getYArgument(), (int)this.getWorkPosition().getZArgument())))
+	 * 			| 			|| (this.getInventory().size() == inventoryCapacity))
+	 */
+	public void pickUpMaterial(Material material) throws NullPointerException, IllegalArgumentException {
+		if(material == null)
+			throw new NullPointerException();
+		if((! this.getActivityStatus().equals("work")) 
+				|| (! this.getWorld().hasAsMaterial(material))
+					|| (! material.getCubePositionVector().equals(new PositionVector((int)this.getWorkPosition().getXArgument(), 
+						(int)this.getWorkPosition().getYArgument(), (int)this.getWorkPosition().getZArgument())))
+						|| (this.getInventory().size() == inventoryCapacity))
+			throw new IllegalArgumentException();
+		this.addMaterialToInventory(material);
+		this.getWorld().removeMaterial(material);
+		
+	}
+	
 	/**
 	 * Make this unit attack another unit that's occupying this unit's cube or an adjacent cube when it's not already fighting and does
 	 * nothing when already fighting.
@@ -1834,8 +1867,8 @@ public class Unit extends GameObject {
 	 * 			| (this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
 	 * 			| 	|| (target.getActivityStatus().equals("fall"))
 	 * @throws	IllegalArgumentException
-	 * 			The target is not in an adjacent cube of this unit.
-	 * 			| this.isValidAdjacent(target.getUnitPosition())
+	 * 			The target is not in an adjacent cube of this unit or is an ally.
+	 * 			| this.isValidAdjacent(target.getUnitPosition()) || (target.getFaction().equals(this.getFaction()))
 	 * @throws	NullPointerException
 	 * 			The target is not effective.
 	 * 			| target == null
@@ -1845,8 +1878,8 @@ public class Unit extends GameObject {
 				|| (target.getActivityStatus().equals("fall"))) {
 			throw new IllegalStateException();
 		}
-		if (! this.isValidAdjacent(target.getUnitPosition())) {
-			throw new IllegalArgumentException("Not in reach");
+		if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
+			throw new IllegalArgumentException();
 		}
 		this.setMinRestCounter(0);
 		this.setActivityStatus("attack");
@@ -2497,7 +2530,7 @@ public class Unit extends GameObject {
 	/**
 	 * Make this unit do a random action of either walking, sprinting, working, resting or moving.
 	 * 
-	 * @effect 	This unit either moves to a random position, starts to work or starts to rest.
+	 * @effect 	This unit either moves to a random position, starts to work at a random adjacent position or starts to rest.
 	 * 			| Random generator = new Random()
 	 *	 		|  int action = generator.nextInt(3)
 	 *			|  if (action == 0)
@@ -2505,7 +2538,7 @@ public class Unit extends GameObject {
 	 *			|  	this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
 	 *			|  	this.setSprint(sprint == 1)
 	 *			|  if (action == 1)
-	 *			|  	this.work()
+	 *			|  	this.work(this.randomAdjacent())
 	 *			|  if (action == 2) 
 	 *			|  	this.rest()
 	 */
@@ -2519,7 +2552,7 @@ public class Unit extends GameObject {
 			this.setSprint(sprint == 1);
 		}
 		if (action == 1){
-			this.work();
+			this.work(this.randomAdjacent());
 		}
 		if (action == 2) {
 			this.rest();

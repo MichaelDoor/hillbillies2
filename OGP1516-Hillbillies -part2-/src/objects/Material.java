@@ -13,7 +13,7 @@ import position.PositionVector;
 public abstract class Material extends GameObject {
 
 	/**
-	 * Create a material, with a given position.
+	 * Create a material, with a given position and a random weight.
 	 * @param position	The given position.
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position.

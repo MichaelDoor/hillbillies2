@@ -10,7 +10,7 @@ import position.PositionVector;
 public class Log extends Material {
 	
 	/**
-	 * Create a new log with a given position.
+	 * Create a new log with a given position and random weight.
 	 * @param position	The given position.
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position.

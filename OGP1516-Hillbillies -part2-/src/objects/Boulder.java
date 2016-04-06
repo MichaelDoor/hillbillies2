@@ -10,7 +10,7 @@ import position.PositionVector;
 public class Boulder extends Material {
 	
 	/**
-	 * Create a new boulder with a given position.
+	 * Create a new boulder with a given position and a random weight.
 	 * @param position	The given position.
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position.

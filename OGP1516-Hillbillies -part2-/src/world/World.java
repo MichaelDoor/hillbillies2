@@ -375,6 +375,30 @@ public class World {
 	}
 	
 	/**
+	 * Collapses the cube at a given position, letting it change in air and dropping a material.
+	 * @param position	The given position.
+	 * @effect	The cube at the given position caves-in, if there is no material spawned by the cave-in, a material is added in the
+	 * 			the center of the cube, a log if the cube was a tree, a boulder if the cube was a rock.
+	 * @throws IllegalArgumentException
+	 * 			The given position is not a valid position or the cube at the given position is not solid.
+	 */
+	public void collapse(PositionVector	position) throws IllegalArgumentException {
+		if((! this.isValidPosition(position)) || (! this.isSolidPosition(position)))
+			throw new IllegalArgumentException("The given position is not a valid position for this world "
+					+ "or the cube at it is not solid!");
+		int x = (int) position.getXArgument();
+		int y = (int) position.getYArgument();
+		int z = (int) position.getZArgument();
+		int terrain = this.getCubeType(x,y,z);
+		this.caveIn(x, y, z);
+		Cube newCube = this.getCube(x, y, z);
+		if((terrain == 1) &&(! newCube.containsBoulder()))
+			newCube.addAsContent(new Boulder(Unit.centrePosition(new PositionVector(x, y, z))));
+		if((terrain == 2) &&(! newCube.containsLog()))
+			newCube.addAsContent(new Log(Unit.centrePosition(new PositionVector(x, y, z))));	
+	}
+	
+	/**
 	 * Makes the cube at the given position cave-in.
 	 * @param x	The x coordinate of the targeted cube.
 	 * @param y	The y coordinate of the targeted cube.
@@ -869,7 +893,7 @@ public class World {
 	 * @throws NullPointerException
 	 * 			The given material is not effective.
 	 */
-	private boolean hasAsMaterial(Material material) throws NullPointerException{
+	public boolean hasAsMaterial(Material material) throws NullPointerException{
 		if(material == null)
 			throw new NullPointerException();
 		return this.getMaterialSet().contains(material);
