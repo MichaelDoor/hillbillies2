@@ -85,6 +85,12 @@ import faction.Faction;
  * @invar  The work position of each unit must be a valid work position for any
  *         unit.
  *       | isValidWorkPosition(getWorkPosition())
+ * @invar  The defend attempts map of each unit must be a valid defend attempts map for any
+ *         unit.
+ *       | isValidDefendAttempts(getDefendAttempts())
+ * @invar  The target of each unit must be a valid target for any
+ *         unit.
+ *       | isValidTarget(getTarget())
  * @author Michaël Dooreman
  * @version	0.23
  */
@@ -154,6 +160,10 @@ public class Unit extends GameObject {
 	 *       	| this.setInventory(new HashSet<Material>())
 	 * @effect 	The work position of this new unit is set to null.
 	 *       	| this.setWorkPosition(null)
+	 * @effect 	The defend attempts map of this new unit is set to an empty map.
+	 *       	| this.setDefendAttempts(new HashMap<Unit,Boolean>())
+	 * @effect 	The target of this new unit is set to null.
+	 *       	| this.setTarget(null)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -194,6 +204,8 @@ public class Unit extends GameObject {
 		this.setQueue(new HashMap<PositionVector, Integer>());
 		this.setInventory(new HashSet<Material>());
 		this.setWorkPosition(null);
+		this.setDefendAttempts(new HashMap<Unit,Boolean>());
+		this.setTarget(null);
 	}
 	
 	/**
@@ -1853,6 +1865,8 @@ public class Unit extends GameObject {
 	 * Make this unit attack another unit that's occupying this unit's cube or an adjacent cube when it's not already fighting and does
 	 * nothing when already fighting.
 	 * @param target	The target unit.
+	 * @effect	This uniy's target is set to the given target.
+	 * 			| this.setTarget(target)
 	 * @effect	This unit's minimum rest time is set to zero.
 	 * 			| this.setMinRestCounter(0)
 	 * @effect	This unit's activity status is set to "attack".
@@ -1881,27 +1895,31 @@ public class Unit extends GameObject {
 		if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
 			throw new IllegalArgumentException();
 		}
+		this.setTarget(target);
 		this.setMinRestCounter(0);
 		this.setActivityStatus("attack");
 		this.resetAttackTime();
 		this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
-		target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
+				target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
 	}
 	
 	/**
 	 * Makes this unit conduct it's attack for a given amount of time and when the attack is over advance time.
 	 * @param time	The given amount of time.
 	 * @effect	If this unit's attack time is less then the given time, activity status is set default, attack time 0
-	 * 			and time advances for the resting time.
+	 * 			and time advances for the resting time and claims its attack experience.
 	 * 			| if (this.getAttackTime() < time) {
 	 * 			| 	double restingTime = time - this.getAttackTime()
 	 * 			| 	this.setAttackTime(0)
 	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.gainAttackExp()
 	 * 			| 	this.advanceTime(restingTime) }
-	 * @effect	If this unit's attack time equals the given time, attack time is set 0and activity status to default.
+	 * @effect	If this unit's attack time equals the given time, attack time is set 0nd activity status to default
+	 * 			and this unit claims its attack experience.
 	 * 			| if (this.getAttackTime() == time) {
 	 * 			| 	this.setAttackTime(0)
-	 * 			| 	this.setActivityStatus("default")}
+	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.gainAttackExp()}
 	 * @effect	When this unit's attack time is larger then the given time, the given time is subtracted from it's attack time.
 	 * 			| if (this.getAttackTime > time) {
 	 * 			| 	this.setAttackTime(this.getAttackTime() - time)}
@@ -1918,17 +1936,37 @@ public class Unit extends GameObject {
 		if (this.getAttackTime() < time) {
 			 double restingTime = time - this.getAttackTime();
 			 this.setAttackTime(0);
+			 this.claimAttackExp();
 			 this.setActivityStatus("default");
 			 this.advanceTime(restingTime);
 			 }
 		else if (this.getAttackTime() == time) {
 			 this.setAttackTime(0);
+			 this.claimAttackExp();
 			 this.setActivityStatus("default");
 		}
 		else {
 			this.setAttackTime(this.getAttackTime() - time);
 		}
 		this.increaseAutRestCounter(time);
+	}
+	
+	/**
+	 * Let's this unit claim its experience points earned by an attack.
+	 * @effect	If this unit's target was not able to defend itself, this unit gains 20 experience points;
+	 * 			| this.gainExp(20)
+	 * @effect	The defend attempt of this unit's target against this unit is removed and this unit's target is set to null.
+	 * 			| this.getTarget().removeDefendAttempt(this)
+	 * 			| this.setTarget(null)
+	 * @throws IllegalStateException
+	 */
+	private void claimAttackExp() throws IllegalStateException {
+		if((! this.getActivityStatus().equals("attack")) || (this.getTarget() == null))
+			throw new IllegalStateException();
+		if(this.getTarget().getDefendAttempt(this) == true)
+			this.gainExp(20);
+		this.getTarget().removeDefendAttempt(this);
+		this.setTarget(null);
 	}
 	
 	/**
@@ -2001,20 +2039,29 @@ public class Unit extends GameObject {
 	 * 			| this.setNextPosition(this.getUnitPosition())
 	 * 			| this.setDestination(this.getUnitPosition())
 	 * 			| this.setCurrentVelocity(new PositionVector(0,0,0))
-	 * @effect	If by chance this unit is able to dodge, it moves to an adjacent cube.
+	 * @effect	If by chance this unit is able to dodge, it moves to generated dodge destination, gains 20 experience points and adds a
+	 * 			successful defend attempt.
 	 * 			| if(this.dodge() == true) {
-	 * 			| 	this.moveToAdjacent(this.randomAdjacent())}
-	 * @effect	If dodging failed, this unit tries to block the incoming attack by chance, resulting in no damage if successful,
-	 * 			else this unit's hitpoints are decreased by the enemy's strength level.
+	 * 			| 	this.gainExp(20)
+	 * 			| 	this.addDefendAttempt(attacker, true)
+	 * 			| 	this.moveToAdjacent(this.getDodgeDestination())}
+	 * @effect	If dodging failed, but blocking was successful, this unit gains 20 experience points and adds a
+	 * 			successful defend attempt.
+	 * 			| this.gainExp(20)
+	 * 			| this.addDefendAttempt(attacker, true)
+	 * @effect	If dodging and blocking failed, this unit's hitpoints are decreased by the enemy's strength level and this unit
+	 * 			adds an unsuccessful defend attempt.
 	 * 			| if(this.block() == false) {
 	 * 			| 	if(enemy.getStrength() > this.getCurrentHP()) {
 	 *			|		this.decreaseHP(this.getCurrentHP())}
 	 *			| else{ this.decreaseHP(enemy.getStrength())}
+	 *			| this.addDefendAttempt(attacker, false)
 	 *@throws	NullPointerException
 	 *			The enemy is not effective.
 	 *			| enemy == null
 	 */
 	public void defend(Unit enemy) throws NullPointerException {
+		boolean successFlag = false;
 		this.setMinRestCounter(0);
 		this.setActivityStatus("default");
 		this.setOrientation(Math.atan2((enemy.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
@@ -2023,16 +2070,26 @@ public class Unit extends GameObject {
 		this.setDestination(this.getUnitPosition());
 		this.setCurrentVelocity(new PositionVector(0,0,0));
 		if(this.dodge(enemy) == true) {
-			this.moveToAdjacent(this.randomAdjacent());
+			this.gainExp(20);
+			successFlag = true;
+			this.moveToAdjacent(this.getDodgeDestination());
 		}
-		else if(this.block(enemy) == false) {
-			if(enemy.getStrength() > this.getCurrentHP()) {
-				this.decreaseHP(this.getCurrentHP());
+		else{ 
+			boolean block = this.block(enemy);
+			if(block == true){
+				this.gainExp(20);
+				successFlag = true;
 			}
-			else {
-				this.decreaseHP(enemy.getStrength());
+			else{
+				if(enemy.getStrength() > this.getCurrentHP()) {
+					this.decreaseHP(this.getCurrentHP());
+				}
+				else {
+					this.decreaseHP(enemy.getStrength());
+				}
 			}
 		}
+		this.addDefendAttempt(enemy, successFlag);
 	}
 	
 	/**
@@ -2846,17 +2903,23 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Terminate this unit.
-	 * @effect	This unit is removed from it's faction and it's world. It's activity status, velocity, destination, faction,
-	 * 			name, next position and world are set to null.
+	 * @effect	This unit drops all objects from it's inventory and  is then removed from it's faction and it's world.
+	 * 			It's activity status, velocity, destination, faction, name, next position, world, defend attempts map, 
+	 * 			path and work position are given the null reference.
+	 * 			| this.emptyInventory()
 	 * 			| this.getFaction().removeUnit(this)
 	 * 			| this.getWorld().removeUnit(this)
 	 * 			| this.activityStatus = null
 	 *			| this.currentVelocity = null
 	 *			| this.destination = null
-	 *			| this.faction = null;
-	 *			| this.name = null;
-	 *			| this.nextPosition = null;
-	 *			| this.world = null;
+	 *			| this.faction = null
+	 *			| this.name = null
+	 *			| this.nextPosition = null
+	 *			| this.world = null
+	 *			| this.defendAttempts = null
+	 *			| this.inventory = null
+	 *			| this.path = null
+	 *			| this.workPosition = null
 	 * @throws	IllegalStateException
 	 * 			This unit is already terminated.
 	 * 			| this.isTerminated()
@@ -2864,6 +2927,7 @@ public class Unit extends GameObject {
 	private void terminate() throws IllegalStateException {
 		if(this.isTerminated())
 			throw new IllegalStateException("Already terminated.");
+		this.emptyInventory();
 		this.activityStatus = null;
 		this.currentVelocity = null;
 		this.destination = null;
@@ -2873,6 +2937,10 @@ public class Unit extends GameObject {
 		this.nextPosition = null;
 		this.getWorld().removeUnit(this);
 		this.world = null;
+		this.defendAttempts = null;
+		this.inventory = null;
+		this.path = null;
+		this.workPosition = null;
 	}
 	
 	/**
@@ -3117,5 +3185,211 @@ public class Unit extends GameObject {
 	 * Variable registering the work position of this unit.
 	 */
 	private PositionVector workPosition;
-
+	
+	/**
+	 * Return the defend attempts map of this unit.
+	 */
+	@Basic @Raw
+	public HashMap<Unit,Boolean> getDefendAttempts() {
+		return this.defendAttempts;
+	}
+	
+	/**
+	 * Check whether the given defend attempts map is a valid defend attempts map for
+	 * any unit.
+	 *  
+	 * @param  defend attempts map
+	 *         The defend attempts map to check.
+	 * @return 
+	 *       | result == (defendAttempts != null)
+	*/
+	public static boolean isValidDefendAttempts(HashMap<Unit,Boolean> defendAttempts) {
+		return (defendAttempts != null);
+	}
+	
+	/**
+	 * Set the defend attempts map of this unit to the given defend attempts map.
+	 * 
+	 * @param  defendAttempts
+	 *         The new defend attempts map for this unit.
+	 * @post   The defend attempts map of this new unit is equal to
+	 *         the given defend attempts map.
+	 *       | new.getDefendAttempts() == defendAttempts
+	 * @throws NullPointerException
+	 *         The given defend attempts map is not a valid defend attempts map for any
+	 *         unit.
+	 *       | ! isValidDefendAttempts(getDefendAttempts())
+	 */
+	@Raw
+	public void setDefendAttempts(HashMap<Unit,Boolean> defendAttempts) 
+			throws NullPointerException {
+		if (! isValidDefendAttempts(defendAttempts))
+			throw new NullPointerException();
+		this.defendAttempts = defendAttempts;
+	}
+	
+	/**
+	 * Variable registering the defend attempts map of this unit.
+	 */
+	private HashMap<Unit,Boolean> defendAttempts;
+	
+	/**
+	 * Register a defend attempt of this unit, for a given attacker and a defend attempt.
+	 * @param attacker	The given attacking unit.
+	 * @param couldDefendFlag	The given outcome of the defend attempt.
+	 * @effect	The attacking unit and given outcome are put into this unit's defend attempts map.
+	 * 			| this.getDefendAttempts().put(attacker, couldDefendFlag)
+	 * @throws IllegalArgumentException
+	 * 			This unit can't have the given attacker in a defend attempt.
+	 * 			| ! canHaveAsDefendAttempt(attacker)
+	 */
+	public void addDefendAttempt(Unit attacker, boolean couldDefendFlag) throws IllegalArgumentException {
+		if(! canHaveAsDefendAttempt(attacker))
+			throw new IllegalArgumentException();
+		this.getDefendAttempts().put(attacker, couldDefendFlag);
+	}
+	
+	/**
+	 * Remove the given attacker from this unit's defend attempts map.
+	 * @param attacker	The given attacking unit.
+	 * @effect	The given attacker is removed as a key in this unit's defend attempts map.
+	 * 			| this.getDefendAttempts().remove(attacker)
+	 * @throws NullPointerException
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 * @throws IllegalArgumentException
+	 * 			This unit does not have the given attacker in any of it's defend attempts.
+	 * 			! this.hasAsDefendAttempt(attacker)
+	 */
+	public void removeDefendAttempt(Unit attacker) throws NullPointerException, IllegalArgumentException {
+		if(! this.hasAsDefendAttempt(attacker))
+			throw new IllegalArgumentException("This unit does not have the given attacker in any of it's defend attempts!");
+		this.getDefendAttempts().remove(attacker);
+	}
+	
+	/**
+	 * Check whether this unit can have a given attacker in a defend attempt.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the given attacker is effective and a unit of this unit's world and not already in a defend
+	 * 			attempt of this unit.
+	 * 			result == ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)))
+	 */
+	public boolean canHaveAsDefendAttempt(Unit attacker){
+		return ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)));
+	}
+	
+	/**
+	 * Check whether this unit has a defend attempt for the given attacker.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the given attacker is effective and is a key in this unit's defend attempts map.
+	 * 			result == this.getDefendAttempts().containsKey(attacker)
+	 * @throws	NullPointerException	
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 */
+	public boolean hasAsDefendAttempt(Unit attacker) throws NullPointerException {
+		if(attacker == null)
+			throw new NullPointerException();
+		return this.getDefendAttempts().containsKey(attacker);
+	}
+	
+	/**
+	 * Get the outcome of the defend attempt of this unit against the given attacker.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the value connected to the given attacker as key in this unit's defend attempts map is true.
+	 * 			| result == this.getDefendAttempts().get(attacker);
+	 * @throws NullPointerException
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 * @throws IllegalArgumentException
+	 * 			This unit does not have the given attacker in any of its defend attempts.
+	 * 			| ! this.hasAsDefendAttempt(attacker)
+	 */
+	public boolean getDefendAttempt(Unit attacker) throws NullPointerException, IllegalArgumentException {
+		if(! this.hasAsDefendAttempt(attacker))
+			throw new IllegalArgumentException();
+		return this.getDefendAttempts().get(attacker);
+	}
+	
+	/**
+	 * Return the target of this unit.
+	 */
+	@Basic @Raw
+	public Unit getTarget() {
+		return this.target;
+	}
+	
+	/**
+	 * Check whether the given target is a valid target for
+	 * any unit.
+	 *  
+	 * @param  target
+	 *         The target to check.
+	 * @return True if and only if the given target belongs to this unit's world or is not effective.
+	 *       | result == (this.getWorld().hasAsUnit(target)) || (target == null)
+	*/
+	public boolean isValidTarget(Unit target) {
+		return ((this.getWorld().hasAsUnit(target)) || (target == null));
+	}
+	
+	/**
+	 * Set the target of this unit to the given target.
+	 * 
+	 * @param  target
+	 *         The new target for this unit.
+	 * @post   The target of this new unit is equal to
+	 *         the given target.
+	 *       | new.getTarget() == target
+	 * @throws IllegalArgumentException
+	 *         The given target is not a valid target for any
+	 *         unit.
+	 *       | ! isValidTarget(getTarget())
+	 */
+	@Raw
+	public void setTarget(Unit target) 
+			throws IllegalArgumentException {
+		if (! isValidTarget(target))
+			throw new IllegalArgumentException();
+		this.target = target;
+	}
+	
+	/**
+	 * Variable registering the target of this unit.
+	 */
+	private Unit target;
+	
+	/**
+	 * Return a position to which this unit can move when dodging.
+	 * @return	A random adjacent position of this unit, on the which this unit can stand.
+	 * 			| Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
+	 *			| validAdjacents.add(this.getCubePositionVector());
+	 *			| for(PositionVector adjacent : validAdjacents){
+	 *			| 	if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
+	 *			| 	validAdjacents.remove(adjacent)}
+	 *			| Random generator = new Random();
+	 *			| PositionVector[] positions = null;
+	 *			| positions = validAdjacents.toArray(positions);
+	 *			| PositionVector position = positions[generator.nextInt(positions.length)];
+	 *			| result == new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
+	 *			| 		position.getZArgument() + generator.nextDouble())
+	 * @throws	IllegalStateException
+	 * 			This unit's world is not effective.
+	 * 			| this.getWorld() == null
+	 */
+	private PositionVector getDodgeDestination() throws IllegalStateException {
+		if(this.getWorld() == null)
+			throw new IllegalStateException();
+		Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
+		validAdjacents.add(this.getCubePositionVector());
+		for(PositionVector adjacent : validAdjacents){
+			if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
+				validAdjacents.remove(adjacent);
+		}
+		Random generator = new Random();
+		PositionVector[] positions = null;
+		positions = validAdjacents.toArray(positions);
+		PositionVector position = positions[generator.nextInt(positions.length)];
+		return new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
+				position.getZArgument() + generator.nextDouble());
+	}
 }

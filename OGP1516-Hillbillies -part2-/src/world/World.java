@@ -1286,4 +1286,23 @@ public class World {
 		Cube cube = this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
 		return cube.getALog();
 	}
+	
+	/**
+	 * Return a set of all adjacent standing positions of a given position.
+	 * @param position	The given position.
+	 * @return	A set of positions that are standing positions and adjacent positions of the given position.
+	 * @throws IllegalArgumentException
+	 * 			The given position is not a valid position for this world.
+	 */
+	public Set<PositionVector> getAdjacentStandingPositions(PositionVector position) throws IllegalArgumentException {
+		if(! this.isValidPosition(position))
+			throw new IllegalArgumentException("The given position is not a valid position!");
+		Set<PositionVector> allAdjacents = this.getAllAdjacentPositions(position);
+		for(PositionVector adjacent : allAdjacents){
+			if(! this.isValidStandingPosition(adjacent)){
+				allAdjacents.remove(adjacent);
+			}
+		}
+		return allAdjacents;
+	}
 }

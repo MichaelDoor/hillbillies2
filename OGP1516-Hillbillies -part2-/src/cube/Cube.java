@@ -316,4 +316,19 @@ public abstract class Cube {
 		}
 		return log;
 	}
+	
+	/**
+	 * Return a set of all units in this cube.
+	 * @return	A set with all the game objects of this cub's content that are units.
+	 */
+	public Set<Unit> getUnits() {
+		Set<GameObject> content = this.getContent();
+		Set<Unit> units = new HashSet<Unit>();
+		for(GameObject object : content){
+			if(object.getClass().equals(Unit.class)){
+				units.add((Unit) object);
+			}
+		}
+		return units;
+	}
 }
