@@ -1,14 +1,14 @@
-package world;
+package hillbillies.model;
 
 import java.util.*;
 
 import be.kuleuven.cs.som.annotate.*;
-import cube.*;
-import faction.Faction;
 import hillbillies.part2.listener.*;
 import hillbillies.util.*;
-import objects.*;
-import position.PositionVector;
+
+
+
+
 
 /**
  * A class of worlds.
@@ -989,8 +989,12 @@ public class World {
 	 * @effect	The given faction is added to this world's faction set.
 	 * @throws IllegalStateException
 	 * 			This world already reached it's maximum amount of factions.
+	 * @throws	NullPointerException
+	 * 			The given faction is not effective.
 	 */
 	public void addFaction(Faction faction) throws  IllegalStateException, NullPointerException{
+		if(faction == null)
+			throw new NullPointerException();
 		try{if(! this.canHaveAsFaction(faction))
 				throw new IllegalStateException();
 			this.getFactionSet().add(faction);

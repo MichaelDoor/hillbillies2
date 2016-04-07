@@ -152,6 +152,8 @@ public class Unit extends GameObject {
 	 *       	| this.setDefaultBehaviour(false)
 	 * @effect 	The faction of this new unit is set to the given faction.
 	 *       	| this.setFaction(faction)
+	 * @effect	This unit is added to the given faction.
+	 * 			| faction.addUnit(this)
 	 * @effect 	The experience of this new unit is set to 0.
 	 *       	| this.setExp(0)
 	 * @effect 	The path queue of this new unit is set to an empty hash map.
@@ -200,12 +202,41 @@ public class Unit extends GameObject {
 		this.setAutRestCounter(0);
 		this.setDefaultBehaviour(false);
 		this.setFaction(faction);
+		faction.addUnit(this);
 		this.setExp(0);
 		this.setQueue(new HashMap<PositionVector, Integer>());
 		this.setInventory(new HashSet<Material>());
 		this.setWorkPosition(null);
 		this.setDefendAttempts(new HashMap<Unit,Boolean>());
 		this.setTarget(null);
+	}
+	
+	
+	/**
+	 * Initialize this new Unit with given position, name, strength, agility, toughness and weight.
+	 * @param  position		The position for this new unit.
+	 * @param  name			The name for this new unit.
+	 * @param  faction		The faction for this new unit.
+	 * @param  strength		The strength for this new unit.
+	 * @param  agility		The agility for this new unit.
+	 * @param  toughness	The toughness for this new unit.
+	 * @param  weight		The weight for this new unit.
+	 * @effect	A new unit is initialized with the given position, name and random initial attribute values and a new faction.
+	 * 			| this(position, name, randomInitialAttValue(), randomInitialAttValue(),
+	 * 										 randomInitialAttValue(), randomInitialAttValue(), new Faction())
+	 * @throws  IllegalArgumentException
+	 * 		    The given name is not a valid name.
+	 * 			| ! isValidName(name)
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this unit.
+	 * 			| !isValidUnitPosition(position)
+	 * @throws	NullPointerException
+	 * 			The position is not effective.
+	 * 			| position == null
+	 */
+	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight) 
+			throws IllegalArgumentException, NullPointerException {
+		this(position, name, strength, agility, toughness, weight, new Faction());
 	}
 	
 	/**
@@ -1488,6 +1519,24 @@ public class Unit extends GameObject {
 	 * Variable registering the work time of this unit.
 	 */
 	private double workTime;
+	
+	/**
+	 * Command this unit to work.
+	 * @effect	The activity status of this unit is set to work mode.
+	 * 			| this.setActivityStatus("work")
+	 * @effect	This unit's work time is reset.
+	 * 			| this.resetWorkTime()
+	 * @throws	IllegalStateException
+	 * 			This unit is attacking.
+	 * 			| this.getActivityStaus().equals("attack")
+	 */
+	@Raw @Deprecated
+	public void work() throws IllegalStateException {
+		if(this.getActivityStatus().equals("attack"))	
+				throw new IllegalStateException();
+		this.setActivityStatus("work");
+		this.resetWorkTime();
+	}
 	
 	/**
 	 * Command this unit to work.
@@ -3227,5 +3276,39 @@ public class Unit extends GameObject {
 		for(Material object : this.getInventory())
 			weight = weight + object.getWeight();
 		return weight;
+	}
+	
+	/**
+	 * Check whether this unit is carrying a log.
+	 * @return	True if and only if this unit has a Log in it's inventory.
+	 * 			| boolean flag = false
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	if(material.getClass().equals(Log.class))
+	 * 			| 		flag = true
+	 * 			| result == flag
+	 */
+	public boolean isCarryingLog() {
+		for(Material material : this.getInventory()){
+			if(material.getClass().equals(Log.class))
+				return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Check whether this unit is carrying a boulder.
+	 * @return	True if and only if this unit has a Boulder in it's inventory.
+	 * 			| boolean flag = false
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	if(material.getClass().equals(Boulder.class))
+	 * 			| 		flag = true
+	 * 			| result == flag
+	 */
+	public boolean isCarryingBoulder() {
+		for(Material material : this.getInventory()){
+			if(material.getClass().equals(Boulder.class))
+				return true;
+		}
+		return false;
 	}
 }

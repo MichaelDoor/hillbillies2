@@ -1,12 +1,14 @@
 package hillbillies.model;
+
 import java.util.*;
-import ogp.framework.util.*;
+
+
 import be.kuleuven.cs.som.annotate.*;
+import hillbillies.model.PositionVector;
+import hillbillies.model.World;
+import hillbillies.model.Faction;
 
 /**
- * @invar  The unitPosition of each unit must be a valid unitPosition for any
- *         unit.
- *       | isValidUnitPosition(getUnitPosition())
  * @invar  The name of each unit must be a valid name for any
  *         unit.
  *       | isValidName(getName())
@@ -70,13 +72,34 @@ import be.kuleuven.cs.som.annotate.*;
  * @invar  The automatic rest counter of each unit must be a valid automatic rest counter for any
  *         unit.
  *       | isValidAutRestCounter(getAutRestCounter())
+ * @invar  The faction of each unit must be a valid faction for any
+ *         unit.
+ *       | isValidFaction(getFaction())
+ * @invar  The experience of each unit must be a valid experience for any
+ *         unit.
+ *       | isValidExp(getExp())
+ * @invar  The path queue of each unit must be a valid path queue for any
+ *         unit.
+ *       | isValidQueue(getQueue())
+ * @invar  The inventory of each unit must be a valid inventory for any
+ *         unit.
+ *       | isValidInventory(getInventory())
+ * @invar  The work position of each unit must be a valid work position for any
+ *         unit.
+ *       | isValidWorkPosition(getWorkPosition())
+ * @invar  The defend attempts map of each unit must be a valid defend attempts map for any
+ *         unit.
+ *       | isValidDefendAttempts(getDefendAttempts())
+ * @invar  The target of each unit must be a valid target for any
+ *         unit.
+ *       | isValidTarget(getTarget())
  * @author Michaël Dooreman
- * @version	0.19
+ * @version	0.23
  */
-public class Unit {
+public class Unit extends GameObject {
 	
 	/**
-	 * Initialize this new Unit with given position, name, weight, strength, agility, toughness.
+	 * Initialize this new Unit with given position, name, weight, strength, agility, toughness and faction.
 	 * 
 	 * @param  position		The position for this new unit.
 	 * @param  name			The name for this new unit.
@@ -84,8 +107,9 @@ public class Unit {
 	 * @param  agility		The agility for this new unit.
 	 * @param  toughness	The toughness for this new unit.
 	 * @param  weight		The weight for this new unit.
+	 * @param  faction 		The faction for this new unit.
 	 * @effect	The position of this new unit is set to the cube centre of the given position.
-	 * 			| this.setUnitPosition(centrePosition(position))
+	 * 			| this.setUnitPosition(PositionVector.centrePosition(position))
 	 * @post    The name of this new unit equals the given name.
 	 * 			| new.getName().equals(name)
 	 * @effect	The strength of this new unit is set to the given strength.
@@ -128,6 +152,22 @@ public class Unit {
 	 *       	| this.setAutRestCounter(0)
 	 * @effect  The default behaviour of this new unit is set false.
 	 *       	| this.setDefaultBehaviour(false)
+	 * @effect 	The faction of this new unit is set to the given faction.
+	 *       	| this.setFaction(faction)
+	 * @effect	This unit is added to the given faction.
+	 * 			| faction.addUnit(this)
+	 * @effect 	The experience of this new unit is set to 0.
+	 *       	| this.setExp(0)
+	 * @effect 	The path queue of this new unit is set to an empty hash map.
+	 *       	| this.setQueue(new HashMap<PositionVector, Integer>())
+	 * @effect 	The inventory of this new unit is set to an empty hash set.
+	 *       	| this.setInventory(new HashSet<Material>())
+	 * @effect 	The work position of this new unit is set to null.
+	 *       	| this.setWorkPosition(null)
+	 * @effect 	The defend attempts map of this new unit is set to an empty map.
+	 *       	| this.setDefendAttempts(new HashMap<Unit,Boolean>())
+	 * @effect 	The target of this new unit is set to null.
+	 *       	| this.setTarget(null)
 	 * @throws  IllegalArgumentException
 	 * 		    The given name is not a valid name.
 	 * 			| ! isValidName(name)
@@ -138,9 +178,9 @@ public class Unit {
 	 * 			The position is not effective.
 	 * 			| position == null
 	 */
-	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight) 
+	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight, Faction faction) 
 													throws IllegalArgumentException, NullPointerException {
-		this.setUnitPosition(centrePosition(position));
+		super(PositionVector.centrePosition(position));
 		this.setName(name);
 		this.setStrength(makeInitialAttValue(strength));
 		this.setAgility(makeInitialAttValue(agility));
@@ -163,80 +203,64 @@ public class Unit {
 		this.setMinRestCounter(0);
 		this.setAutRestCounter(0);
 		this.setDefaultBehaviour(false);
-	}
-
-
-	/**
-	 * Return the unitPosition of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getUnitPosition() {
-		return this.position;
-	}
-	
-	/**
-	 * Check whether the given unitPosition is a valid unitPosition for
-	 * any unit.
-	 *  
-	 * @param  unitPosition
-	 *         The unitPosition to check.
-	 * @return 
-	 *       | result == (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-	 *       |				&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-	 *       |					&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0)
-	 *       |						&& (position.getXArgument() < 50) && (position.getYArgument() < 50) && (position.getZArgument() < 50))
-	 * @throws	NullPointerException
-	 * 			The position is not effective.
-	 * 			| position == null
-	*/
-	private static boolean isValidUnitPosition(PositionVector position) throws NullPointerException {
-		return (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-					&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-						&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0)
-				      		&& (position.getXArgument() < 50) && (position.getYArgument() < 50) && (position.getZArgument() < 50));
+		this.setFaction(faction);
+		faction.addUnit(this);
+		this.setExp(0);
+		this.setQueue(new HashMap<PositionVector, Integer>());
+		this.setInventory(new HashSet<Material>());
+		this.setWorkPosition(null);
+		this.setDefendAttempts(new HashMap<Unit,Boolean>());
+		this.setTarget(null);
 	}
 	
 	/**
-	 * Set the unitPosition of this unit to the given unitPosition.
-	 * 
-	 * @param  position
-	 *         The new unitPosition for this unit.
-	 * @post   The unitPosition of this new unit is equal to
-	 *         the given unitPosition.
-	 *       	| new.getUnitPosition().equals(position)
-	 * @throws IllegalArgumentException
-	 *         The given unitPosition is not a valid unitPosition for any
-	 *         unit.
-	 *       	| ! isValidUnitPosition(getUnitPosition())
+	 * Initialize this new Unit with given position, name, strength, agility, toughness and weight.
+	 * @param  position		The position for this new unit.
+	 * @param  name			The name for this new unit.
+	 * @param  faction		The faction for this new unit.
+	 * @param  strength		The strength for this new unit.
+	 * @param  agility		The agility for this new unit.
+	 * @param  toughness	The toughness for this new unit.
+	 * @param  weight		The weight for this new unit.
+	 * @effect	A new unit is initialized with the given position, name and random initial attribute values and a new faction.
+	 * 			| this(position, name, randomInitialAttValue(), randomInitialAttValue(),
+	 * 										 randomInitialAttValue(), randomInitialAttValue(), new Faction())
+	 * @throws  IllegalArgumentException
+	 * 		    The given name is not a valid name.
+	 * 			| ! isValidName(name)
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this unit.
+	 * 			| !isValidUnitPosition(position)
 	 * @throws	NullPointerException
 	 * 			The position is not effective.
 	 * 			| position == null
 	 */
-	@Raw @Model
-	private void setUnitPosition(PositionVector position) 
+	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight) 
 			throws IllegalArgumentException, NullPointerException {
-		if (! isValidUnitPosition(position))
-			throw new IllegalArgumentException("Out of bounds!");
-		this.position = new PositionVector (position.getXArgument(), position.getYArgument(), position.getZArgument());
+		this(position, name, strength, agility, toughness, weight, new Faction());
 	}
 	
 	/**
-	 * Variable registering the unitPosition of this unit.
+	 * Initialize this new Unit with given position, name and random attribute values.
+	 * @param  position		The position for this new unit.
+	 * @param  name			The name for this new unit.
+	 * @param  faction		The faction for this new unit.
+	 * @effect	A new unit is initialized with the given position, name and random initial attribute values and the given faction.
+	 * 			| this(position, name, randomInitialAttValue(), randomInitialAttValue(),
+	 * 										 randomInitialAttValue(), randomInitialAttValue(), faction)
+	 * @throws  IllegalArgumentException
+	 * 		    The given name is not a valid name.
+	 * 			| ! isValidName(name)
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid position for this unit.
+	 * 			| !isValidUnitPosition(position)
+	 * @throws	NullPointerException
+	 * 			The position is not effective.
+	 * 			| position == null
 	 */
-	private PositionVector position;
-		
-	/**
-	 * Return the cubePosition of this unit.
-	 * @return	The position of the cube on which this unit is standing.
-	 * 			| result == {(int) this.getUnitPosition().getXArgument(), (int) this.getUnitPosition().getYArgument(),
-	 * 			|										(int) this.getUnitPosition().getZArgument()}
-	 */
-	public int[] getCubePosition() {
-		int x = (int) this.getUnitPosition().getXArgument();
-		int y = (int) this.getUnitPosition().getYArgument();
-		int z = (int) this.getUnitPosition().getZArgument();
-		int[] position = {x,y,z};
-		return position;
+	public Unit(PositionVector position, String name, Faction faction) throws IllegalArgumentException, NullPointerException {
+		this(position, name, randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(), randomInitialAttValue(),
+				faction);
 	}
 	
 	
@@ -376,13 +400,6 @@ public class Unit {
 		this.setName(name);
 	}
 
-	/**
-	 * Return the weight of this unit.
-	 */
-	@Basic @Raw
-	public int getWeight() {
-		return this.weight;
-	}
 	
 	/**
 	 * Check whether the given weight is a valid weight for
@@ -394,7 +411,7 @@ public class Unit {
 	 *       | result == ((weight >= 1) && (weight <= 200) && (weight >= ((this.getStrength()+this.getAgility())/2)))
 	*/
 	@Raw
-	private boolean isValidWeight(int weight) {
+	protected boolean isValidWeight(int weight) {
 		int strength = this.getStrength();
 		int agility = this.getAgility();
 		int minBorder = (int) ((strength + agility)/2.0);
@@ -411,30 +428,26 @@ public class Unit {
 	 *          weight.
 	 *       	| if (isValidWeight(weight))
 	 *       	|   then new.getWeight() == weight
-	 * @post	If the given weight is more than 200, this unit's weight is set to 200.
-	 * 			| if (weight > 200)
-	 * 			| 	this.weight = 200
+	 * @post	If the given weight is more than the maximum attribute value for any unit, this unit's weight is set to 
+	 * 			the maximum attribute value for any unit..
+	 * 			| if (weight > maxAttValue)
+	 * 			| 	this.weight = maxAttValue
 	 * @post	If the given weight is smaller than half of the sum of this unit's agility and strength,
 	 * 			this unit's weight is set to half of the sum of this unit's agility and strength.
 	 * 			| if (weight < (this.getStrength()+this.getAgility())/2)
 	 * 			| 	this.weight = (this.getStrength()+this.getAgility())/2
 	 */
-	@Raw
+	@Override @Raw
 	public void setWeight(int weight) {
 		if (isValidWeight(weight))
 			this.weight = weight;
-		if (weight > 200) {
-			this.weight = 200;
+		if (weight > maxAttValue) {
+			this.weight = maxAttValue;
 		}
 		if (weight < (this.getStrength()+this.getAgility())/2) {
 			this.weight = (this.getStrength()+this.getAgility())/2;
 		}
 	}
-	
-	/**
-	 * Variable registering the weight of this unit.
-	 */
-	private int weight;
 	
 	
 	/**
@@ -468,9 +481,10 @@ public class Unit {
 	 *          strength.
 	 *       	| if (isValidStrength(strength))
 	 *       	|   then new.getStrength() == strength
-	 * @post	If the given strength is bigger than 200, this unit's strength is set to 200.
-	 * 			| if (strength > 200)
-	 * 			| 	this.strength = 200
+	 * @post	If the given strength is bigger than the maximum attribute value for any unit, this unit's strength is set to 
+	 * 			the maximum attribute value for any unit.
+	 * 			| if (strength > maxAttValue)
+	 * 			| 	this.strength = maxAttValue
 	 * @post	If the given strength is smaller than 1, this unit's strength is set to 1.
 	 * 			| if (strength < 1)	
 	 * 			| 	this.strength = 1
@@ -479,8 +493,8 @@ public class Unit {
 	public void setStrength(int strength) {
 		if (isValidStrength(strength))
 			this.strength = strength;
-		if (strength > 200) {
-			this.strength = 200;
+		if (strength > maxAttValue) {
+			this.strength = maxAttValue;
 		}
 		if (strength < 1) {
 			this.strength = 1;
@@ -523,9 +537,9 @@ public class Unit {
 	 *          agility.
 	 *       	| if (isValidAgility(agility))
 	 *       	|   then new.getAgility() == agility
-	 * @post	If the given agility is bigger than 200, this unit's agility is set to 200.
-	 * 			| if (agility > 200) 
-	 *			|	this.agility = 200
+	 * @post	If the given agility is bigger than the maximum attribute value, this unit's agility is set to 200.
+	 * 			| if (agility > maxAttValue) 
+	 *			|	this.agility = maxAttValue
 	 * @post	If the given agility is smaller than 1, this unit's agility is set to 1.
 	 * 			| if (agility < 1)
 	 * 			| 	this.agility = 1
@@ -534,8 +548,8 @@ public class Unit {
 	public void setAgility(int agility) {
 		if (isValidAgility(agility))
 			this.agility = agility;
-		if (agility > 200) {
-			this.agility = 200;
+		if (agility > maxAttValue) {
+			this.agility = maxAttValue;
 		}
 		if (agility < 1) {
 			this.agility = 1;
@@ -578,9 +592,10 @@ public class Unit {
 	 *          toughness.
 	 *       	| if (isValidToughness(toughness))
 	 *       	|   then new.getToughness() == toughness
-	 * @post	If the given toughness is bigger than 200, this unit's toughness is set to 200.
-	 * 			| if (toughness > 200)
-	 * 			| 	this.toughness = 200
+	 * @post	If the given toughness is bigger than the maximum attribute value for any unit, this unit's toughness is set to 
+	 * 			the maximum attribute value for any unit.
+	 * 			| if (toughness > maxAttValue)
+	 * 			| 	this.toughness = maxAttValue
 	 * @post	If the given toughness is smaller than 1, this unit's toughness is set to 1.
 	 * 			| if (toughness < 1)
 	 * 			| 	this.toughness = 1
@@ -589,8 +604,8 @@ public class Unit {
 	public void setToughness(int toughness) {
 		if (isValidToughness(toughness))
 			this.toughness = toughness;
-		if (toughness > 200) {
-			this.toughness = 200;
+		if (toughness > maxAttValue) {
+			this.toughness = maxAttValue;
 		}
 		if (toughness < 1) {
 			this.toughness = 1;
@@ -836,6 +851,11 @@ public class Unit {
 	 * Let time advance for this unit for a given amount of time.
 	 * @param time	The given amount of time.
 	 * @effect	This unit's activity status is checked.
+	 * 			If this unit is falling, and it reached it's next position and destination, it's hitpoints are decreased by 10 and
+	 * 			it either continues falling if it can, else it's activity status is set to default and it's velocity 
+	 * 			to the zero vector.
+	 * 			If this unit is falling and has not yet reached it's next position and destination, it moves in the fall direction.
+	 * 			If this unit should fall, it falls and time advances for the given time.
 	 * 			If this unit is doing nothing and it's default behaviour is activated, it'll do a random action.
 	 * 			If the unit is attacking, it continues it's attack.
 	 * 			If it's minimum rest counter isn't zero yet, it'll continue to rest until the counter reaches zero, then it'll 
@@ -849,16 +869,38 @@ public class Unit {
 	 * @throws	IllegalArgumentException
 	 * 			Time is either negative or equal to or greater then 0.2s.
 	 */
+	@Override
 	public void advanceTime(double time) 
 								throws IllegalArgumentException {
 		if ((time < 0) || (time >= 0.2)) {
 			throw new IllegalArgumentException();
 		}
 		String status = this.getActivityStatus();
-		if ((status.equals("default") && (this.getDefaultBehaviour() == true) && ((this.getUnitPosition()).equals(this.getNextPosition())
+		if(status.equals("fall"))
+			//Unit fell 1 cube
+			if((this.getUnitPosition().equals(this.getNextPosition())) && (this.getUnitPosition().equals(this.getDestination()))){
+				this.decreaseHP(10);
+				if(this.fallCheck()){
+					this.fall();
+					this.advanceTime(time);
+				}
+				else{
+					this.setActivityStatus("default");
+					this.setCurrentVelocity(new PositionVector(0, 0, 0));
+				}
+			}
+			//Unit has not yet fallen down a whole cube.
+			else{
+				this.miniMove(time, 1);
+			}
+		else if(this.fallCheck()){
+				this.fall();
+				this.advanceTime(time);
+		}
+		else if ((status.equals("default") && (this.getDefaultBehaviour() == true) && ((this.getUnitPosition()).equals(this.getNextPosition())
 				&& (this.getUnitPosition()).equals(this.getDestination())))){
-			this.randomBehaviour();
-			status = this.getActivityStatus(); 
+				this.randomBehaviour();
+				status = this.getActivityStatus(); 
 			}
 		else if (status.equals("attack")) {
 				this.doAttack(time);
@@ -911,61 +953,69 @@ public class Unit {
 	/**
 	 * Gives this unit a given destination and determines which adjacent cube he has to move to start it's journey.
 	 * @param destination	The given destination.
-	 * @effect	The unit's destination is set to the center of the cube of the given destination.
-	 * 			| this.setDestination(centrePosition(destination))
-	 * @effect	Set this unit's next position to the adjacent cube he has to take on the path to it's destination.
-	 * 			| this.moveToAdjacent(adjacent)
 	 * @throws	IllegalArgumentException
-	 * 			The given destination is not a valid destination.
-	 * 			| ! isValidDestination(destination)
+	 * 			The given destination is not a valid position for this unit in its world.
+	 * 			| ! this.getWorld().isValidStandingPosition(destination)
 	 * @throws	NullPointerException
 	 * 			The destination is not effective.
 	 * 			| destination == null
 	 */
 	public void moveTo(PositionVector destination) throws IllegalArgumentException, NullPointerException {
-		this.setDestination(centrePosition(destination));
-		int[] adjacent = {0,0,0};
-		int[] destinationCube = {(int) destination.getXArgument(), (int) destination.getYArgument(), (int) destination.getZArgument()};
-		if (this.getCubePosition()[0] == destinationCube[0]) {
-			adjacent[0] = 0;
+		if(! this.getWorld().isValidStandingPosition(destination))
+			throw new IllegalArgumentException();
+		this.setDestination(PositionVector.centrePosition(destination));
+		Map<PositionVector, Integer> path = this.getQueue();
+		if(! this.getUnitPosition().equals(destination)){
+			if(! path.containsKey(destination))
+				path.put(destination, 0);
+			int i = -1;
+			PositionVector cubePosition = new PositionVector(this.getCubePosition()[0], this.getCubePosition()[1],
+					this.getCubePosition()[2]);
+			ArrayList<PositionVector> subQueue = new ArrayList<PositionVector>();
+			if(path.size() == 1)
+				this.searchPath(destination, 0, subQueue);	
+			
+			while((! path.containsKey(cubePosition)) && (i < path.size()-1)){
+				i++;
+				PositionVector position = subQueue.get(i);
+				this.searchPath(position, i, subQueue);
+			}
+			if(path.containsKey(this.getCubePosition())){
+				Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(cubePosition);
+				PositionVector best = cubePosition;
+				int distance = path.get(best);
+				for(PositionVector adjacent : adjacents){
+					if((path.get(adjacent) != null) && (path.get(adjacent) < distance)){
+						distance = path.get(adjacent);
+						best = adjacent;
 					}
-		else { if (this.getCubePosition()[0] < destinationCube[0]) {
-			adjacent[0] = 1;
+				}
+				this.moveToAdjacent(PositionVector.calcDifferenceVector(cubePosition, best));	
 			}
-			else {
-				adjacent[0] = -1;
-			}
+			else
+				path.clear();
 		}
-		if (this.getCubePosition()[1] == destinationCube[1]) {
-			adjacent[1] = 0;
-					}
-		else { if (this.getCubePosition()[1] < destinationCube[1]) {
-			adjacent[1] = 1;
-			}
-			else {
-				adjacent[1] = -1;
-			}
-		}
-		if (this.getCubePosition()[2] == destinationCube[2]) {
-			adjacent[2] = 0;
-					}
-		else { if (this.getCubePosition()[2] < destinationCube[2]) {
-			adjacent[2] = 1;
-			}
-			else {
-				adjacent[2] = -1;
-			}
-		}
-		this.moveToAdjacent(new PositionVector((double) adjacent[0], (double) adjacent[1], (double) adjacent[2]));
+		path.clear();
 	}
+	
+	@Model
+	private void searchPath(PositionVector position, int n, ArrayList<PositionVector> subQueue){
+		for(PositionVector adjacent : this.getWorld().getAllAdjacentPositions(position)){
+			if((this.getWorld().isValidStandingPosition(adjacent)) && (! this.getQueue().containsKey(adjacent))){
+				this.getQueue().put(adjacent, n+1);
+				subQueue.add(adjacent);
+			}
+		}
+	}
+		
 	
 	/**
 	 * Return the base speed of this unit.
-	 * @return	The base speed of this unit calculated with a formula using the strength, agility and weight of this unit.
-	 * 			| result == 1.5*(this.getStrength() + this.getAgility())/(200*(this.getWeight()/100.0))
+	 * @return	The base speed of this unit calculated with a formula using the strength, agility and effective weight of this unit.
+	 * 			| result == 1.5*(this.getStrength() + this.getAgility())/(200*(this.getEffectiveWeight()/100.0))
 	 */
 	public double getBaseSpeed() {
-		return (1.5*(this.getStrength() + this.getAgility())/(200*(this.getWeight()/100.0)));
+		return (1.5*(this.getStrength() + this.getAgility())/(200*(this.getEffectiveWeight()/100.0)));
 	}
 	
 	/**
@@ -1003,38 +1053,8 @@ public class Unit {
 		return baseSpeed;
 	}
 	
-	//what if it's outside the game world?
-	/**
-	 * Check whether a given position is located in an adjacent cube of the position of this unit.
-	 * @param position	The position to check.
-	 * @return	True if and only if the given position is in an adjacent cube of this unit's position.
-	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
-	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
-	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
-	 *			|		&& (((Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 1) 
-	 *			|				|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 0) 
-	 *			|					|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == -1))
-	 *			|			&& (((Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1) 
-	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
-	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1)))
-	 */
-	public boolean isValidAdjacent(PositionVector position) {
-		int positionX = (int) position.getXArgument();
-		int positionY = (int) position.getYArgument();
-		int positionZ = (int) position.getZArgument();
-		int unitX = this.getCubePosition()[0];
-		int unitY = this.getCubePosition()[1];
-		int unitZ = this.getCubePosition()[2];
-		int[] difference = {Math.abs(unitX-positionX), Math.abs(unitY-positionY), Math.abs(unitZ-positionZ)};
-		if (((difference[0] == -1) || (difference[0] == 0) || (difference[0] == 1))
-				&& ((difference[1] == -1) || (difference[1] == 0) || (difference[1] == 1))
-				&& ((difference[2] == -1) || (difference[2] == 0) || (difference[2] == 1))){
-			return true;
-		}
-		return false;
-	}
 	
-	// recheck for redundant code and more correct specification
+	
 	/**
 	 * Let's this unit move to the center of the adjacent cube of which a position in it is given, if the unit is not already moving
 	 * and the given position does not equal the unit's position.
@@ -1043,9 +1063,9 @@ public class Unit {
 	 * 			| this.setActivityStatus("move")
 	 * @effect	The current velocity of this unit is set by using the given position.
 	 * 			| this.setCurrentVelocity(calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
-	 * 			|						this.getUnitPosition(),centrePosition(PositionVector.sum(this.getUnitPosition(), position))))
+	 * 			|			this.getUnitPosition(),PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position))))
 	 * @effect	The next position of this unit is set by using the given position.
-	 * 			| this.setNextPosition(centrePosition(PositionVector.sum(this.getUnitPosition(), position)))
+	 * 			| this.setNextPosition(PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position)))
 	 * @effect	If the given position is the final destination of this unit, than this unit's destination is set to the given position.
 	 * 			| this.setDestination(this.getNextPosition());
 	 * @throws	IllegalArgumentException
@@ -1054,8 +1074,14 @@ public class Unit {
 	 * @throws	IllegalArgumentException
 	 * 			The sum of the given position and the unit's current position is not in an adjacent cube.
 	 * 			| ! isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position))
+	 * @throws	IllegalArgumentException
+	 * 			The given position refers to a solid cube.
+	 * 			| (this.getWorld().isSolidPosition(PositionVector.sum(this.getUnitPosition(),position))
+	 * @throws	IllegalArgumentException
+	 * 			The adjacent cube is not a valid standing position in this unit's world.
+	 * 			| (! this.getWorld().isValidStandingPosition(PositionVector.sum(this.getUnitPosition(), position)))
 	 * @throws	IllegalStateException
-	 * 			This unit is already moving to an adjacent cube
+	 * 			This unit is already moving to an adjacent cube.
 	 * 			| (this.getActivityStatus() == "move") &&(! this.getUnitPosition().equals(this.getNextPosition()))
 	 * @throws	NullPointerException
 	 * 			The given position is not effective.
@@ -1065,7 +1091,10 @@ public class Unit {
 			throws IllegalArgumentException, IllegalStateException, NullPointerException {
 		if(! position.equals(this.getUnitPosition())){
 			if((!isValidUnitPosition(PositionVector.sum(this.getUnitPosition(),position))) || 
-								(!isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position)))) {
+								(!isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position)))
+								|| (this.getWorld().isSolidPosition(PositionVector.sum(this.getUnitPosition(),position))
+										|| (! this.getWorld().isValidStandingPosition(PositionVector.sum(this.getUnitPosition(),
+												position))))) {
 				throw new IllegalArgumentException();
 			}
 			if((this.getActivityStatus() == "move") && (! this.getUnitPosition().equals(this.getNextPosition()))) {
@@ -1073,7 +1102,7 @@ public class Unit {
 			}
 			if(this.getActivityStatus() != "move") {
 				this.setActivityStatus("move");
-				PositionVector destination = centrePosition(PositionVector.sum(this.getUnitPosition(), position));
+				PositionVector destination = PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position));
 				PositionVector velocity = calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
 						destination, this.getUnitPosition());
 				this.setCurrentVelocity(velocity);
@@ -1110,83 +1139,22 @@ public class Unit {
 	}
 	
 	/**
-	 * Calculates the center position of the cube that contains the given position.
-	 * @param position	The given position.
-	 * @return	The center position as a vector.
-	 * 			| result == new PositionVector(Math.floor(position.getXArgument()) + (cubeLength/2),
-	 * 			|								Math.floor(position.getYArgument()) + (cubeLength/2),
-	 * 			|									Math.floor(position.getZArgument()) + (cubeLength/2))
-	 * @throws	NullPointerException
-	 * 			The given position is not an effective.
-	 * 			| position == null
-	 */
-	private static PositionVector centrePosition(PositionVector position) throws NullPointerException{
-		double x = Math.floor(position.getXArgument()) + (cubeLength/2);
-		double y = Math.floor(position.getYArgument()) + (cubeLength/2);
-		double z = Math.floor(position.getZArgument()) + (cubeLength/2);
-		return (new PositionVector(x,y,z));
-	}
-	
-	/**
-	 * A class variable, defining the length of one cube.
-	 */
-	private final static double cubeLength = 1.0;
-	
-	
-	/**
-	 * Return the activityStatus of this unit.
-	 */
-	@Basic @Raw
-	public String getActivityStatus() {
-		return this.activityStatus;
-	}
-	
-	/**
 	 * Check whether the given activityStatus is a valid activityStatus for
-	 * any unit.
+	 * this unit.
 	 *  
 	 * @param  activityStatus
 	 *         The activityStatus to check.
 	 * @return 
 	 *       | result == ((activityStatus.equals("move") || (activityStatus.equals("work")) || 
 	 *		 |					(activityStatus.equals("rest")) || (activityStatus.equals("attack")) ||
-	 *		 |						 (activityStatus.equals("default"))))
+	 *		 |						 (activityStatus.equals("default")) || (activityStatus.equals("fall"))))
 	 */
-	private static boolean isValidActivityStatus(String activityStatus) {
+	@Override
+	protected boolean isValidActivityStatus(String activityStatus) {
 		return ((activityStatus.equals("move") || (activityStatus.equals("work")) || 
 					(activityStatus.equals("rest")) || (activityStatus.equals("attack")) ||
-						(activityStatus.equals("default"))));
+					(super.isValidActivityStatus(activityStatus))));
 	}
-	
-	/**
-	 * Set the activityStatus of this unit to the given activityStatus.
-	 * 
-	 * @param  activityStatus
-	 *         The new activityStatus for this unit.
-	 * @post   The activityStatus of this new unit is equal to
-	 *         the given activityStatus.
-	 *       | new.getActivityStatus() == activityStatus
-	 * @throws IllegalArgumentException
-	 *         The given activityStatus is not a valid activityStatus for any
-	 *         unit.
-	 *       | ! isValidActivityStatus(getActivityStatus())
-	 * @throws	NullPointerException
-	 * 			The activity status is not effective.
-	 * 			| activityStatus == null
-	 */
-	@Raw @Model
-	private void setActivityStatus(String activityStatus) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidActivityStatus(activityStatus))
-			throw new IllegalArgumentException();
-		this.activityStatus = activityStatus;
-	}
-	
-	/**
-	 * Variable registering the activityStatus of this unit.
-	 */
-	private String activityStatus;
-	
 	
 	/**
 	 * Return the current velocity of this unit, according to it's sprint status.
@@ -1204,110 +1172,6 @@ public class Unit {
 			return this.currentVelocity;
 		}
 	}
-	
-	/**
-	 * Return the current velocity of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getCurrentVelocityBasic() {
-		return this.currentVelocity;
-	}
-	
-	/**
-	 * Check whether the given current velocity is a valid current velocity for
-	 * any unit.
-	 *  
-	 * @param  current velocity
-	 *         The current velocity to check.
-	 * @return 
-	 *       | result == true
-	*/
-	private static boolean isValidCurrentVelocity(PositionVector currentVelocity) {
-		return true;
-	}
-	
-	/**
-	 * Set the current velocity of this unit to the given current velocity.
-	 * 
-	 * @param  currentVelocity
-	 *         The new current velocity for this unit.
-	 * @post   The current velocity of this new unit is equal to
-	 *         the given current velocity.
-	 *       | new.getCurrentVelocity() == currentVelocity
-	 * @throws IllegalArgumentException
-	 *         The given current velocity is not a valid current velocity for any
-	 *         unit.
-	 *       | ! isValidCurrentVelocity(getCurrentVelocity())
-	 * @throws	NullPointerException
-	 * 			The given velocity is not effective.
-	 * 			| currentVelocity == null
-	 */
-	@Raw @Model
-	private void setCurrentVelocity(PositionVector currentVelocity) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidCurrentVelocity(currentVelocity))
-			throw new IllegalArgumentException();
-		this.currentVelocity = currentVelocity;
-	}
-	
-	/**
-	 * Variable registering the current velocity of this unit.
-	 */
-	private PositionVector currentVelocity;
-	
-	
-	/**
-	 * Return the targeted adjacent position of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getNextPosition() {
-		return this.nextPosition;
-	}
-	
-	/**
-	 * Check whether the given targeted adjacent position is a valid targeted adjacent position for
-	 * any unit.
-	 *  
-	 * @param  targeted adjacent position
-	 *         The targeted adjacent position to check.
-	 * @return 
-	 *       | result == (this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition))
-	*/
-	private boolean isValidNextPosition(PositionVector nextPosition) {
-		return ((this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition)));
-	}
-	
-	/**
-	 * Set the targeted adjacent position of this unit to the given targeted adjacent position.
-	 * 
-	 * @param  nextPosition
-	 *         The new targeted adjacent position for this unit.
-	 * @post   The targeted adjacent position of this new unit is equal to
-	 *         the given targeted adjacent position.
-	 *       | new.getNextPosition() == new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(),
-	 *       | 																					 nextPosition.getZArgument())
-	 * @throws IllegalArgumentException
-	 *         The given targeted adjacent position is not a valid targeted adjacent position for any
-	 *         unit.
-	 *       | (! isValidNextPosition(getNextPosition()))
-	 * @throws	NullPointerException
-	 * 			The next position is not effective.
-	 * 			| nextPosition == null
-	 */
-	@Raw @Model
-	private void setNextPosition(PositionVector nextPosition) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidNextPosition(nextPosition)) {
-			throw new IllegalArgumentException();
-		}
-		this.nextPosition = new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(), nextPosition.getZArgument());
-	}
-	
-	/**
-	 * Variable registering the targeted adjacent position of this unit.
-	 */
-	private PositionVector nextPosition;
-	
 	
 	/**
 	 * Return the destination of this unit.
@@ -1329,8 +1193,8 @@ public class Unit {
 	 * 			The destination is not effective.
 	 * 			| destination == null
 	*/
-	private static boolean isValidDestination(PositionVector destination) throws NullPointerException{
-		return isValidUnitPosition(destination);
+	private boolean isValidDestination(PositionVector destination) throws NullPointerException{
+		return this.isValidUnitPosition(destination);
 	}
 	
 	/**
@@ -1510,12 +1374,14 @@ public class Unit {
 	 * @effect	This unit covers a distance by moving at it's speed times multiplier for the given time, 
 	 * 			when it doesn't reach it's next position within the given time.
 	 * 			| this.setUnitPosition(PositionVector.sum(this.getUnitPosition(), PositionVector.multiplyBy(dt, this.getCurrentVelocity())))
-	 * @effect	This unit has reached it's next position if time was sufficient to reach it, it's activity status is set to
-	 * 			default and it's current velocity to the zero vector. 
+	 * @effect	This unit has reached it's next position if time was sufficient to reach it, it gains 1xp if it wasn't falling,
+	 * 			it's activity status, is set to default and it's current velocity to the zero vector. 
 	 * 			| this.setUnitPosition(new PositionVector(this.getNextPosition().getXArgument(),this.getNextPosition().getYArgument(),
 	 *			|	this.getNextPosition().getZArgument())))
-	 *			| this.setActivityStatus("default");
-	 *			| this.setCurrentVelocity(new PositionVector(0, 0, 0));
+	 *			| if(! this.getActivityStatus().equals("fall"))
+	 *			| 	this.gainExp(1)
+	 *			| this.setActivityStatus("default")
+	 *			| this.setCurrentVelocity(new PositionVector(0, 0, 0))
 	 * @effect	In case the unit has time left after reaching it's next position, time advances.
 	 * 			| this.advanceTime(restingTime)
 	 * @effect	The automatic rest counter is increased with the given amount of time.
@@ -1524,7 +1390,8 @@ public class Unit {
 	 * 			Time is negative.
 	 * 			| time < 0
 	 */
-	private void miniMove(double dt, int multiplier) throws IllegalArgumentException {
+	@Override
+	protected void miniMove(double dt, int multiplier) throws IllegalArgumentException {
 		if (dt <0)
 			throw new IllegalArgumentException();
 		double distance = PositionVector.calcDistance(this.getUnitPosition(), this.getNextPosition());
@@ -1534,6 +1401,8 @@ public class Unit {
 		if (travelTime <= dt) {
 			this.setUnitPosition(new PositionVector(this.getNextPosition().getXArgument(),this.getNextPosition().getYArgument(),
 					this.getNextPosition().getZArgument()));
+			if(! this.getActivityStatus().equals("fall"))
+				this.gainExp(1);
 			this.setActivityStatus("default");
 			this.setCurrentVelocity(new PositionVector(0, 0, 0));
 			double restingTime = dt-travelTime;
@@ -1662,12 +1531,43 @@ public class Unit {
 	 * 			This unit is attacking.
 	 * 			| this.getActivityStaus().equals("attack")
 	 */
-	@Raw
+	@Raw @Deprecated
 	public void work() throws IllegalStateException {
 		if(this.getActivityStatus().equals("attack"))	
 				throw new IllegalStateException();
 		this.setActivityStatus("work");
 		this.resetWorkTime();
+	}
+	
+	/**
+	 * Command this unit to work.
+	 * @param	targetPosition	The given target position.
+	 * @effect	The activity status of this unit is set to work mode.
+	 * 			| this.setActivityStatus("work")
+	 * @effect	This unit's work position is set to the given target position.
+	 * 			| this.setWorkPosition(PositionVector.centrePosition(targetPosition))
+	 * @effect	This unit's work time is reset.
+	 * 			| this.resetWorkTime()
+	 * @effect	This unit's orientation is set to face the cube of the target position.
+	 * 			| this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()))
+	 * @throws	IllegalArgumentException
+	 * 			The given position is not a valid adjacent position of this unit.
+	 * 			| (! this.isValidAdjacent(targetPosition))
+	 * @throws	IllegalStateException
+	 * 			This unit is attacking or falling.
+	 * 			| this.getActivityStaus().equals("attack") || (this.getActivityStatus().equals("fall"))
+	 */
+	@Raw
+	public void work(PositionVector targetPosition) throws IllegalArgumentException, IllegalStateException {
+		if(! this.isValidAdjacent(targetPosition))
+			throw new IllegalArgumentException("Target cube is not an adjacent!");
+		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))	
+				throw new IllegalStateException();
+		this.setActivityStatus("work");
+		this.setWorkPosition(PositionVector.centrePosition(targetPosition));
+		this.resetWorkTime();
+		PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getUnitPosition(), targetPosition);
+		this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
 	}
 	
 	/**
@@ -1677,15 +1577,21 @@ public class Unit {
 	 * 			the work time.
 	 * 			| if (time < this.getWorkTime()) {
 	 * 			| 	this.setWorkTime(this.getWorkTime - time) }
-	 * @effect	This unit's work time is set to 0 and it's activity status to default, if the given time equals the unit's work time.
+	 * @effect	This unit's work time is set to 0 and it's activity status to default, if the given time equals the unit's work time,
+	 * 			the effect of the work performed takes effect and this unit's work position is set to null.
 	 * 			| if (time == this.getWorkTime()) {
 	 * 			| 	this.setWorkTime(0)
-	 * 			| 	this.setActivityStatus("default")}
-	 * @effect	This unit's work time is depleted and time advances if there's time left, activity status is set to default.
+	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.workEffect()
+	 * 			| 	this.setWorkPosition(null)
+	 * @effect	This unit's work time is depleted and time advances if there's time left, activity status is set to default,
+	 * 			the effect of the work performed takes effect and this unit's work position is set to null.
 	 * 			| if (this.getWorkTime() < time) {
 	 * 			| 	double restingTime = time - this.getWorkTime()
 	 * 			| 	this.setWorkTime(0)
 	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.workEffect()
+	 * 			| 	this.setWorkPosition(null)
 	 * 			| 	this.advanceTime(restingTime)}
 	 * @effect	The automatic rest counter is increased with the given amount of time.
 	 * 			| this.increaseAutRestCounter(time)
@@ -1700,11 +1606,15 @@ public class Unit {
 		if (this.getWorkTime() < time) {
 			 double restingTime = time - this.getWorkTime();
 			 this.setWorkTime(0);
+			 this.workEffect();
+			 this.setWorkPosition(null);
 			 this.setActivityStatus("default");
 			 this.advanceTime(restingTime);
 		}
 		if (time == this.getWorkTime()) {
 			 this.setWorkTime(0);
+			 this.workEffect();
+			 this.setWorkPosition(null);
 			 this.setActivityStatus("default");
 		}
 		if (time < this.getWorkTime()) {
@@ -1714,9 +1624,104 @@ public class Unit {
 	}
 	
 	/**
+	 * Invoke the effects caused by a labor of this unit.
+	 * @effect	If this unit's working position is not solid and its inventory is not empty, this unit empties its inventory at
+	 * 			it's working position;
+	 * 			| this.emptyInventory();
+	 * @effect	If this unit's working position refers to a workshop cube that contains a log and a boulder, this unit's equipment is 
+	 * 			improved.
+	 * 			| this.improveEquipment()
+	 * @effect	If this unit's working position contains a boulder and this unit's inventory is not full, it picks up the boulder.
+	 * 			| this.pickUpBoulder(this.getWorkPosition())
+	 * @effect	If this unit's working position contains a log and this unit's inventory is not full, it picks up the log.
+	 * 			| this.pickUpLog(this.getWorkPosition())
+	 * @effect	If this unit's working position refers to a wood cube or a rock cube, the cube collapses.
+	 * 			| this.getWorld().collapse(this.getWorkPosition())
+	 * @throws	IllegalStateException
+	 * 			This unit's work time is 0 or it's activity status is not 'work'.
+	 * 			| (this.getWorkTime() != 0) || (! this.getActivityStatus().equals("work"))
+	 */
+	private void workEffect() throws IllegalStateException {
+		if((this.getWorkTime() != 0) || (! this.getActivityStatus().equals("work")))
+			throw new IllegalStateException();
+		
+		if((! this.getWorld().isSolidPosition(this.getWorkPosition())) && (! this.getInventory().isEmpty()))
+			this.emptyInventory(this.getWorkPosition());
+		else if((this.getWorld().isWorkshop(this.getWorkPosition())) && (this.getWorld().containsLog(this.getWorkPosition()))
+				&& (this.getWorld().containsBoulder(this.getWorkPosition())))
+			this.improveEquipment();
+		else if((this.getWorld().containsBoulder(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
+			this.pickUpMaterial(this.getWorld().getABoulder(this.getWorkPosition()));
+		else if((this.getWorld().containsLog(this.getWorkPosition())) && (this.getInventory().size() < inventoryCapacity))
+			this.pickUpMaterial(this.getWorld().getALog(this.getWorkPosition()));
+		else if((this.getWorld().isWood(this.getWorkPosition())) || (this.getWorld().isRock(this.getWorkPosition())))
+			this.getWorld().collapse(this.getWorkPosition());
+	}
+	
+	/**
+	 * Improve this unit's equipment.
+	 * @effect	The boulder and log at this unit's work position, which is a workshop, are consumed. This unit's weight is increaded
+	 * 			by 5 and it's toughness by 10.
+	 * 			| this.getWorld().removeMaterial(this.getWorld().getABoulder(this.getWorkPosition()))
+	 * 			| this.getWorld().removeMaterial(this.getWorld().getALog(this.getWorkPosition()))
+	 * 			| this.setWeight(this.getWeight() + 5)
+	 * 			| this.setToughness(this.getToughness() + 10)
+	 * @throws	IllegalStateException
+	 * 			This unit's work position does not refer to a workshop and does not contain a log and a boulder.
+	 * 			(!this.getWorld().isWorkshop(this.getWorkPosition())) || (! this.getWorld().containsBoulder(this.getWorkPosition()))
+	 *			| 	|| (this.getWorld().containsLog(this.getWorkPosition()))
+	 */
+	private void improveEquipment() throws IllegalStateException{
+		if((!this.getWorld().isWorkshop(this.getWorkPosition())) || (! this.getWorld().containsBoulder(this.getWorkPosition()))
+				|| (this.getWorld().containsLog(this.getWorkPosition())))
+			throw new IllegalStateException();
+		Boulder boulder = this.getWorld().getABoulder(this.getWorkPosition());
+		this.getWorld().removeMaterial(boulder);
+		Log log = this.getWorld().getALog(this.getWorkPosition());
+		this.getWorld().removeMaterial(log);
+		this.setWeight(this.getWeight() + 5);
+		this.setToughness(this.getToughness() + 10);
+	}
+	
+	
+	/**
+	 * Make this unit pick up a given material.
+	 * @param material	The given material.
+	 * @effect	The given material is added to this unit's inventory, the given material is removed from this unit's world.
+	 * 			| this.addMaterialToInventory(material)
+	 * 			| this.getWorld().removeMaterial(material)
+	 * @throws NullPointerException
+	 * 			The given material is not effective.
+	 * 			| material == null
+	 * @throws IllegalArgumentException
+	 * 			This unit's activity status is not 'work' or this unit's world does have the given material or
+	 * 			the given material is not in the cube to which this unit's work position refers or this unit's inventory is full.
+	 * 			| (! this.getActivityStatus().equals("work")) 
+	 * 			| 	|| (! this.getWorld().hasAsMaterial(material))
+	 * 			| 		|| (! material.getCubePositionVector().equals(new PositionVector((int)this.getWorkPosition().getXArgument(), 
+	 * 			| 						(int)this.getWorkPosition().getYArgument(), (int)this.getWorkPosition().getZArgument())))
+	 * 			| 			|| (this.getInventory().size() == inventoryCapacity))
+	 */
+	public void pickUpMaterial(Material material) throws NullPointerException, IllegalArgumentException {
+		if(material == null)
+			throw new NullPointerException();
+		if((! this.getActivityStatus().equals("work")) 
+				|| (! this.getWorld().hasAsMaterial(material))
+					|| (! material.getCubePositionVector().equals(new PositionVector((int)this.getWorkPosition().getXArgument(), 
+						(int)this.getWorkPosition().getYArgument(), (int)this.getWorkPosition().getZArgument())))
+						|| (this.getInventory().size() == inventoryCapacity))
+			throw new IllegalArgumentException();
+		this.addMaterialToInventory(material);
+		this.getWorld().removeMaterial(material);
+		
+	}
+	
+	/**
 	 * Make this unit attack another unit that's occupying this unit's cube or an adjacent cube when it's not already fighting and does
 	 * nothing when already fighting.
 	 * @param target	The target unit.
+	 * @effect	This uniy's target is set to the given target.
+	 * 			| this.setTarget(target)
 	 * @effect	This unit's minimum rest time is set to zero.
 	 * 			| this.setMinRestCounter(0)
 	 * @effect	This unit's activity status is set to "attack".
@@ -1727,43 +1732,49 @@ public class Unit {
 	 * 			| this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
 	 * 			| 	target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()))
 	 * @throws	IllegalStateException
-	 * 			This unit is already attacking.
-	 * 			| (this.getActivityStatus().equals("attack"))
+	 * 			This unit is already attacking or is falling or the target is falling.
+	 * 			| (this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
+	 * 			| 	|| (target.getActivityStatus().equals("fall"))
 	 * @throws	IllegalArgumentException
-	 * 			The target is not in an adjacent cube of this unit.
-	 * 			| this.isValidAdjacent(target.getUnitPosition())
+	 * 			The target is not in an adjacent cube of this unit or is an ally.
+	 * 			| this.isValidAdjacent(target.getUnitPosition()) || (target.getFaction().equals(this.getFaction()))
 	 * @throws	NullPointerException
 	 * 			The target is not effective.
 	 * 			| target == null
 	 */
 	public void attack(Unit target) throws IllegalStateException, IllegalArgumentException, NullPointerException {
-		if ((this.getActivityStatus().equals("attack"))) {
+		if ((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall"))
+				|| (target.getActivityStatus().equals("fall"))) {
 			throw new IllegalStateException();
 		}
-		if (! this.isValidAdjacent(target.getUnitPosition())) {
-			throw new IllegalArgumentException("Not in reach");
+		if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
+			throw new IllegalArgumentException();
 		}
+		this.setTarget(target);
 		this.setMinRestCounter(0);
 		this.setActivityStatus("attack");
 		this.resetAttackTime();
 		this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
-		target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
+				target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
 	}
 	
 	/**
 	 * Makes this unit conduct it's attack for a given amount of time and when the attack is over advance time.
 	 * @param time	The given amount of time.
 	 * @effect	If this unit's attack time is less then the given time, activity status is set default, attack time 0
-	 * 			and time advances for the resting time.
+	 * 			and time advances for the resting time and claims its attack experience.
 	 * 			| if (this.getAttackTime() < time) {
 	 * 			| 	double restingTime = time - this.getAttackTime()
 	 * 			| 	this.setAttackTime(0)
 	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.gainAttackExp()
 	 * 			| 	this.advanceTime(restingTime) }
-	 * @effect	If this unit's attack time equals the given time, attack time is set 0and activity status to default.
+	 * @effect	If this unit's attack time equals the given time, attack time is set 0nd activity status to default
+	 * 			and this unit claims its attack experience.
 	 * 			| if (this.getAttackTime() == time) {
 	 * 			| 	this.setAttackTime(0)
-	 * 			| 	this.setActivityStatus("default")}
+	 * 			| 	this.setActivityStatus("default")
+	 * 			| 	this.gainAttackExp()}
 	 * @effect	When this unit's attack time is larger then the given time, the given time is subtracted from it's attack time.
 	 * 			| if (this.getAttackTime > time) {
 	 * 			| 	this.setAttackTime(this.getAttackTime() - time)}
@@ -1780,17 +1791,37 @@ public class Unit {
 		if (this.getAttackTime() < time) {
 			 double restingTime = time - this.getAttackTime();
 			 this.setAttackTime(0);
+			 this.claimAttackExp();
 			 this.setActivityStatus("default");
 			 this.advanceTime(restingTime);
 			 }
 		else if (this.getAttackTime() == time) {
 			 this.setAttackTime(0);
+			 this.claimAttackExp();
 			 this.setActivityStatus("default");
 		}
 		else {
 			this.setAttackTime(this.getAttackTime() - time);
 		}
 		this.increaseAutRestCounter(time);
+	}
+	
+	/**
+	 * Let's this unit claim its experience points earned by an attack.
+	 * @effect	If this unit's target was not able to defend itself, this unit gains 20 experience points;
+	 * 			| this.gainExp(20)
+	 * @effect	The defend attempt of this unit's target against this unit is removed and this unit's target is set to null.
+	 * 			| this.getTarget().removeDefendAttempt(this)
+	 * 			| this.setTarget(null)
+	 * @throws IllegalStateException
+	 */
+	private void claimAttackExp() throws IllegalStateException {
+		if((! this.getActivityStatus().equals("attack")) || (this.getTarget() == null))
+			throw new IllegalStateException();
+		if(this.getTarget().getDefendAttempt(this) == true)
+			this.gainExp(20);
+		this.getTarget().removeDefendAttempt(this);
+		this.setTarget(null);
 	}
 	
 	/**
@@ -1863,20 +1894,29 @@ public class Unit {
 	 * 			| this.setNextPosition(this.getUnitPosition())
 	 * 			| this.setDestination(this.getUnitPosition())
 	 * 			| this.setCurrentVelocity(new PositionVector(0,0,0))
-	 * @effect	If by chance this unit is able to dodge, it moves to an adjacent cube.
+	 * @effect	If by chance this unit is able to dodge, it moves to generated dodge destination, gains 20 experience points and adds a
+	 * 			successful defend attempt.
 	 * 			| if(this.dodge() == true) {
-	 * 			| 	this.moveToAdjacent(this.randomAdjacent())}
-	 * @effect	If dodging failed, this unit tries to block the incoming attack by chance, resulting in no damage if successful,
-	 * 			else this unit's hitpoints are decreased by the enemy's strength level.
+	 * 			| 	this.gainExp(20)
+	 * 			| 	this.addDefendAttempt(attacker, true)
+	 * 			| 	this.moveToAdjacent(this.getDodgeDestination())}
+	 * @effect	If dodging failed, but blocking was successful, this unit gains 20 experience points and adds a
+	 * 			successful defend attempt.
+	 * 			| this.gainExp(20)
+	 * 			| this.addDefendAttempt(attacker, true)
+	 * @effect	If dodging and blocking failed, this unit's hitpoints are decreased by the enemy's strength level and this unit
+	 * 			adds an unsuccessful defend attempt.
 	 * 			| if(this.block() == false) {
 	 * 			| 	if(enemy.getStrength() > this.getCurrentHP()) {
 	 *			|		this.decreaseHP(this.getCurrentHP())}
 	 *			| else{ this.decreaseHP(enemy.getStrength())}
+	 *			| this.addDefendAttempt(attacker, false)
 	 *@throws	NullPointerException
 	 *			The enemy is not effective.
 	 *			| enemy == null
 	 */
 	public void defend(Unit enemy) throws NullPointerException {
+		boolean successFlag = false;
 		this.setMinRestCounter(0);
 		this.setActivityStatus("default");
 		this.setOrientation(Math.atan2((enemy.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
@@ -1885,16 +1925,26 @@ public class Unit {
 		this.setDestination(this.getUnitPosition());
 		this.setCurrentVelocity(new PositionVector(0,0,0));
 		if(this.dodge(enemy) == true) {
-			this.moveToAdjacent(this.randomAdjacent());
+			this.gainExp(20);
+			successFlag = true;
+			this.moveToAdjacent(this.getDodgeDestination());
 		}
-		else if(this.block(enemy) == false) {
-			if(enemy.getStrength() > this.getCurrentHP()) {
-				this.decreaseHP(this.getCurrentHP());
+		else{ 
+			boolean block = this.block(enemy);
+			if(block == true){
+				this.gainExp(20);
+				successFlag = true;
 			}
-			else {
-				this.decreaseHP(enemy.getStrength());
+			else{
+				if(enemy.getStrength() > this.getCurrentHP()) {
+					this.decreaseHP(this.getCurrentHP());
+				}
+				else {
+					this.decreaseHP(enemy.getStrength());
+				}
 			}
 		}
+		this.addDefendAttempt(enemy, successFlag);
 	}
 	
 	/**
@@ -1968,16 +2018,21 @@ public class Unit {
 	/**
 	 * Decrease this unit's hitpoints with a given amount until it has no hitpoints left.
 	 * @param amount	The given amount of hitpoints.
-	 * @pre 	The given amount has to be smaller then or equals to this Unit's hitpoints.
-	 * 			| amount <= this.getDoubleHP()
+	 * @pre 	The given amount has to be greater than or equal to 0.
+	 * 			| amount >= 0
 	 * @effect	This unit's hitpoints are set to the difference of it's old hitpoints and the given amount.
 	 * 			| this.setDoubleHP(this.getDoubleHP() - amount)
+	 * @effect	This unit terminates if the difference between it's current hitpoints and the amount is smaller than or equal to
+	 * 			zero.
+	 * 			| this.terminate() 
 	 */
 	@Model
 	private void decreaseHP(int amount) {
-		assert (amount <= this.getCurrentHP());
-		
-		this.setDoubleHP(this.getDoubleHP() - amount);
+		assert (amount >= 0);
+		if((this.getCurrentHP() - amount) <= 0)
+			this.terminate();
+		else
+			this.setDoubleHP(this.getDoubleHP() - amount);
 	}
 	
 	/**
@@ -1989,18 +2044,18 @@ public class Unit {
 	 * @effect	The automatic rest counter is reset.
 	 * 			| this.resetAutRestCounter()
 	 * @throws	IllegalStateException
-	 * 			The unit is in combat or is moving to an adjacent cube.
-	 * 			| (this.getActivityStatus() == "attack") || ( (this.getActivityStatus() == "move") &&
-	 * 			|														this.getUnitPosition() != this.getNextPosition())
+	 * 			The unit is in combat or is falling to an adjacent cube.
+	 * 			| (this.getActivityStatus() == "attack") || (this.getActivityStatus().equals("fall"))
 	 */
 	@Raw
 	public void rest() throws IllegalStateException{
-		if(!(this.getActivityStatus().equals("attack"))){
-			if((this.getDoubleHP() != this.getMaxHP()) || (this.getDoubleStamina() != this.getMaxStamina())){
-				this.setActivityStatus("rest");
-				this.resetMinRestCounter();
-				this.resetAutRestCounter();
-			}
+		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
+			throw new IllegalStateException();
+			
+		if((this.getDoubleHP() != this.getMaxHP()) || (this.getDoubleStamina() != this.getMaxStamina())){
+			this.setActivityStatus("rest");
+			this.resetMinRestCounter();
+			this.resetAutRestCounter();
 		}
 	}
 	/**
@@ -2387,33 +2442,42 @@ public class Unit {
 	/**
 	 * Make this unit do a random action of either walking, sprinting, working, resting or moving.
 	 * 
-	 * @effect 	This unit either moves to a random position, starts to work or starts to rest.
+	 * @effect 	This unit either moves to a random position, starts to work at a random adjacent position, starts to rest or 
+	 * 			attacks a random enemy in an adjacent cube, if there is any.
 	 * 			| Random generator = new Random()
-	 *	 		|  int action = generator.nextInt(3)
-	 *			|  if (action == 0)
-	 *			|  	int sprint = generator.nextInt(2)
+	 *	 		| int action = generator.nextInt(4)
+	 *			| Unit potentialEnemy = this.getRandomAdjacentEnemy()
+	 *			| if(potentialEnemy == null)
+	 *			| 	action = generator.nextInt(3)
+	 *			| if (action == 0)
+	 *			| 	int sprint = generator.nextInt(2)
 	 *			|  	this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
 	 *			|  	this.setSprint(sprint == 1)
-	 *			|  if (action == 1)
-	 *			|  	this.work()
-	 *			|  if (action == 2) 
+	 *			| if (action == 1)
+	 *			|  	this.work(this.randomAdjacent())
+	 *			| if (action == 2) 
 	 *			|  	this.rest()
+	 *			| if (action == 3)
+	 *			| 	this.attack(potentialEnemy)
 	 */
 	@Raw
 	private void randomBehaviour() throws IllegalArgumentException {
 		Random generator = new Random();
-		int action = generator.nextInt(3);
+		int action = generator.nextInt(4);
+		Unit potentialEnemy = this.getRandomAdjacentEnemy();
+		if(potentialEnemy == null)
+			action = generator.nextInt(3);
 		if (action == 0){
 			int sprint = generator.nextInt(2);
 			this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
 			this.setSprint(sprint == 1);
 		}
-		if (action == 1){
-			this.work();
-		}
-		if (action == 2) {
+		if (action == 1)
+			this.work(this.randomAdjacent());
+		if (action == 2) 
 			this.rest();
-		}
+		if (action == 3)
+			this.attack(potentialEnemy);
 	}
 	
 	/**
@@ -2427,11 +2491,825 @@ public class Unit {
 	 * 			| result == attributeValue
 	 */
 	private static int makeInitialAttValue(int attributeValue){
-		if (attributeValue > 100)
+		if (attributeValue > maxInitialAttValue)
 			return 100;
-		else if (attributeValue < 25)
+		else if (attributeValue < minInitialAttValue)
 			return 25;
 		else 
 			return attributeValue;
+	}
+	
+	/**
+	 * Generate a valid random initial value for any attribute of any unit.
+	 * @return	A random value between the maxInitialAttValue and the minInitialAttValue.
+	 * 			| new Random().nextInt(maxInitialAttValue-minInitialAttValue+1)+minInitialAttValue
+	 */
+	private static int randomInitialAttValue() {
+		Random generator = new Random();
+		return generator.nextInt(maxInitialAttValue-minInitialAttValue+1)+minInitialAttValue;
+	}
+	
+	/**
+	 * A variable registering the maximum value a unit's attributes can have upon initialization.
+	 */
+	private static int maxInitialAttValue = 100;
+	
+	/**
+	 * A variable registering the minimum value a unit's attributes can have upon initialization.
+	 */
+	private static int minInitialAttValue = 25;
+	
+	/**
+	 * Return the faction of this unit.
+	 */
+	@Basic @Raw
+	public Faction getFaction() {
+		return this.faction;
+	}
+	
+	/**
+	 * Check whether the given faction is a valid faction for
+	 * any unit.
+	 *  
+	 * @param  faction
+	 *         The faction to check.
+	 * @return 
+	 *       | result == (faction != null)
+	*/
+	public static boolean isValidFaction(Faction faction) {
+		return (faction != null);
+	}
+	
+	/**
+	 * Set the faction of this unit to the given faction.
+	 * 
+	 * @param  faction
+	 *         The new faction for this unit.
+	 * @post   The faction of this new unit is equal to
+	 *         the given faction.
+	 *       | new.getFaction() == faction
+	 * @throws NullPointerException
+	 *         The given faction is not a valid faction for any
+	 *         unit.
+	 *       | ! isValidFaction(getFaction())
+	 */
+	@Raw
+	public void setFaction(Faction faction) 
+			throws NullPointerException {
+		if (! isValidFaction(faction))
+			throw new NullPointerException();
+		this.faction = faction;
+	}
+	
+	/**
+	 * Variable registering the faction of this unit.
+	 */
+	private Faction faction;
+		
+
+	/**
+	 * Return the experience of this unit.
+	 */
+	@Basic @Raw
+	public int getExp() {
+		return this.exp;
+	}
+	
+	/**
+	 * Check whether the given experience is a valid experience for
+	 * any unit.
+	 *  
+	 * @param  experience
+	 *         The experience to check.
+	 * @return 
+	 *       | result == ((exp >= 0) && (exp <= maxExp))
+	*/
+	public static boolean isValidExp(int exp) {
+		return ((exp >= 0) && (exp <= maxExp));
+	}
+	
+	/**
+	 * Set the experience of this unit to the given experience.
+	 * 
+	 * @param  exp
+	 *         The new experience for this unit.
+	 * @post   The experience of this new unit is equal to
+	 *         the given experience.
+	 *       | new.getExp() == exp
+	 * @throws IllegalArgumentException
+	 *         The given experience is not a valid experience for any
+	 *         unit.
+	 *       | ! isValidExp(getExp())
+	 */
+	@Raw
+	public void setExp(int exp) 
+			throws IllegalArgumentException {
+		if (! isValidExp(exp))
+			throw new IllegalArgumentException();
+		this.exp = exp;
+	}
+	
+	/**
+	 * Variable registering the experience of this unit.
+	 */
+	private int exp;
+	
+	/**
+	 * Variable registering the maximum amount of experience any unit can have.
+	 */
+	private static int maxExp = 10;
+	
+	/**
+	 * Let this unit gain a given amount of experience.
+	 * @param exp	The given amount of experience.
+	 * @effect	If the sum of this unit's current experience and the given experience exceeds the maximum experience for any unit,
+	 * 			This unit levels up until until the sum  of it's current experience and the given experience minus the maximum
+	 * 			experience for any unit times the times this unit leveled up is smaller than the maximum experience for any unit.
+	 * 			This unit's experience is set to the sum of it's current experience and the given experience modulo the maximum	
+	 * 			experience for any unit.
+	 * 			| int newExp = this.getExp() + exp
+	 *			| while(newExp >= maxExp)
+	 *			| 	newExp = newExp - maxExp
+	 *			|	this.levelUp()
+	 *			| this.setExp(this.getExp() + exp)
+	 * @effect	This unit's experience is set to the sum of it's current experience and the given experience.
+	 * 			| this.setExp(newExp)
+	 * @throws	IllegalArgumentException
+	 * 			The given experience is negative.
+	 * 			| exp < 0
+	 */
+	private void gainExp(int exp){
+		int newExp = this.getExp() + exp;
+		while(newExp >= maxExp)
+			newExp = newExp - maxExp;
+			this.levelUp();
+		this.setExp(newExp);
+	}
+	
+	/**
+	 * Levels up this unit.
+	 * @effect	A random attribute (agility, strength or toughness) is picked. When the attribute has already reached it's
+	 * 			maximum value, level up is invoked recursively, else the attribute is increased by 1. This unit's attributes are
+	 * 			refreshed.
+	 * 			| if(attribute == 0/1/2)
+	 *			| 	if(this.getAgility/Strength/Toughness() == maxAttValue)
+	 *			|		this.levelUp()
+	 *			| 	else
+	 *			|		this.setAgility/Strength/Toughness(this.getAgility/Strength/Toughness() + 1)
+	 *			| this.refreshAttributes()
+	 * @throws	IllegalStateException
+	 *			This unit's agility, strength and toughness have already reached their maximum value.
+	 *			| (this.getAgility() == maxAttValue) && (this.getStrength() == maxAttValue) && (this.getToughness() == maxAttValue)
+	 * @note	When this unit's agility, strength and toughness have already reached their maximum value, the level up request
+	 * 			is silently rejected.
+	 */
+	private void levelUp() throws IllegalStateException {
+		try{
+			if((this.getAgility() == maxAttValue) && (this.getStrength() == maxAttValue) && (this.getToughness() == maxAttValue))
+				throw new IllegalStateException();
+			Random generator = new Random();
+			int attribute = generator.nextInt(3);
+			if(attribute == 0)
+				if(this.getAgility() == maxAttValue)
+					this.levelUp();
+				else
+					this.setAgility(this.getAgility() + 1);
+			if(attribute == 1)
+				if(this.getStrength() == maxAttValue)
+					this.levelUp();
+				else
+					this.setStrength(this.getStrength() + 1);
+			if(attribute == 2)
+				if(this.getToughness() == maxAttValue)
+					this.levelUp();
+				else
+					this.setToughness(this.getToughness() + 1);
+			this.refreshAttributes();
+		}
+		catch (IllegalStateException exc){
+			
+		}
+	}
+	
+	/**
+	 * Variable registering the maximum value any attribute of any unit can have.
+	 */
+	private static int maxAttValue = 200;
+	
+	/**
+	 * Refreshes this unit's derived attributes.
+	 * @effect	This unit's maximum hitpoints and stamina are recalculated and set.
+	 * 			| this.setMaxHP(calcMaxHPStam(getWeight(), getToughness()))
+	 * 			| this.setMaxStamina(calcMaxHPStam(getWeight(), getToughness()))
+	 */
+	private void refreshAttributes(){
+		this.setMaxHP(calcMaxHPStam(getWeight(), getToughness()));
+		this.setMaxStamina(calcMaxHPStam(getWeight(), getToughness()));
+	}
+	
+	/**
+	 * Check whether the given world is a valid world for
+	 * any unit.
+	 *  
+	 * @param  world
+	 *         The world to check.
+	 * @return 
+	 *       | result == (world == null) || (world.canHaveAsUnit(this)
+	*/
+	@Override
+	protected boolean isValidWorld(World world) {
+		return ((world == null) || (world.canHaveAsUnit(this)));
+	}
+	
+	/**
+	 * Makes this unit fall.
+	 * @effect	This unit's activity status is set to 'fall', its minimum rest counter to zero, its next position and destination are 
+	 * 			set to the center of the cube underneath the cube this unit is occupying.
+	 * 			| this.setActivityStatus("fall")
+	 * 			| this.setMinRestCounter(0)
+	 * 			| this.setNextPosition(PositionVector.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 * 			| this.setDestination(PositionVector.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 */
+	@Override
+	protected void fall() {
+		super.fall();
+		PositionVector cubePosition = new PositionVector(this.getCubePosition()[0], 
+				this.getCubePosition()[1], this.getCubePosition()[2]);
+		PositionVector fallToPosition = PositionVector.centrePosition(this.getWorld().getCubePositionUnderneath(cubePosition));
+		this.setNextPosition(fallToPosition);
+		this.setMinRestCounter(0);
+		this.setDestination(fallToPosition);
+	}
+	
+	/**
+	 * Check whether this unit should fall.
+	 * @return	True if and only if this unit does not occupy a cube at the bottom of it's world (z = 0), does not have 
+	 * 			a solid cube underneath the cube it's occupying and does not have any adjacent solid cube.
+	 * 			| result == (! this.getCubePosition()[2] == 0) && (! this.getWorld().isSolidPosition(this.getCubePositionVector()))
+	 * 			|		&& (this.getWorld().hasSolidAdjacent(this.getWorld().getCube(this.getCubePosition()[0],
+	 * 			|														this.getCubePosition()[1],this.getCubePosition()[2])))
+	 */
+	@Override
+	protected boolean fallCheck(){
+		if(this.getCubePosition()[2] == 0)
+			return false;
+		if(this.getWorld().isSolidPosition(this.getCubePositionVector()))
+			return false;
+		int[] cubePosition = this.getCubePosition();
+		return this.getWorld().hasSolidAdjacent(this.getWorld().getCube(cubePosition[0],cubePosition[1],cubePosition[2]));
+	}
+	
+	/**
+	 * Terminate this unit.
+	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction and it's world.
+	 * 			It's activity status, velocity, destination, faction, name, next position, world, defend attempts map, 
+	 * 			path and work position are given the null reference.
+	 * 			| this.emptyInventory(this.getUnitPosition())
+	 * 			| this.getFaction().removeUnit(this)
+	 * 			| this.getWorld().removeUnit(this)
+	 * 			| this.activityStatus = null
+	 *			| this.destination = null
+	 *			| this.faction = null
+	 *			| this.name = null
+	 *			| this.defendAttempts = null
+	 *			| this.inventory = null
+	 *			| this.path = null
+	 *			| this.workPosition = null
+	 * @throws	IllegalStateException
+	 * 			This unit is already terminated.
+	 * 			| this.isTerminated()
+	 */
+	@Override
+	protected void terminate() throws IllegalStateException {
+		if(this.isTerminated())
+			throw new IllegalStateException("Already terminated.");
+		this.emptyInventory(this.getUnitPosition());
+		this.activityStatus = null;
+		this.destination = null;
+		this.getFaction().removeUnit(this);
+		this.faction = null;
+		this.name = null;
+		this.getWorld().removeUnit(this);
+		this.defendAttempts = null;
+		this.inventory = null;
+		this.path = null;
+		this.workPosition = null;
+		super.terminate();
+	}
+	
+	/**
+	 * Check whether this unit is terminated.
+	 * @return	True is and only if this unit no longer belongs to it's world, nor faction and it's activity status, velocity
+	 * 			destination, faction, name, next position and world equal null.
+	 * 			| (this.getFaction().hasAsUnit(this)) && (this.getWorld().hasAsUnit(this))
+	 * 			| && (this.activityStatus == null) && (this.currentVelocity == null) && (this.destination == null)
+	 * 			| && (this.faction == null) && (this.name == null) && (this.nextPosition == null) && (this.world == null)
+	 */
+	public boolean isTerminated(){
+		return ((this.getFaction().hasAsUnit(this)) && (this.getWorld().hasAsUnit(this)) && (this.activityStatus == null)
+				&& (this.destination == null) && (this.faction == null)
+				&& (this.name == null) && (super.isTerminated()));
+	}
+	
+	/**
+	 * Return the path queue of this unit.
+	 */
+	@Basic @Raw
+	public Map<PositionVector, Integer> getQueue() {
+		return this.path;
+	}
+	
+	/**
+	 * Check whether the given path queue is a valid path queue for
+	 * any unit.
+	 *  
+	 * @param  path queue
+	 *         The path queue to check.
+	 * @return 
+	 *       | result == (queue != null)
+	*/
+	public static boolean isValidQueue(Map<PositionVector, Integer> queue) {
+		return (queue != null);
+	}
+	
+	/**
+	 * Set the path queue of this unit to the given path queue.
+	 * 
+	 * @param  queue
+	 *         The new path queue for this unit.
+	 * @post   The path queue of this new unit is equal to
+	 *         the given path queue.
+	 *       | new.getQueue() == queue
+	 * @throws IllegalArgumentException
+	 *         The given path queue is not a valid path queue for any
+	 *         unit.
+	 *       | ! isValidQueue(getQueue())
+	 */
+	@Raw
+	public void setQueue(Map<PositionVector, Integer> queue) 
+			throws IllegalArgumentException {
+		if (! isValidQueue(queue))
+			throw new IllegalArgumentException();
+		this.path = queue;
+	}
+	
+	/**
+	 * Variable registering the path queue of this unit.
+	 */
+	private Map<PositionVector, Integer> path;
+	
+	/**
+	 * Variable registering any unit's inventory capacity.
+	 */
+	private static int inventoryCapacity = 1;
+	
+	/**
+	 * Return the inventory of this unit.
+	 */
+	@Basic @Raw
+	public Set<Material> getInventory() {
+		return this.inventory;
+	}
+	
+	/**
+	 * Check whether the given inventory is a valid inventory for
+	 * any unit.
+	 *  
+	 * @param  inventory
+	 *         The inventory to check.
+	 * @return 
+	 *       | result == (inventory != null)
+	*/
+	public static boolean isValidInventory(Set<Material> inventory) {
+		return (inventory != null);
+	}
+	
+	/**
+	 * Set the inventory of this unit to the given inventory.
+	 * 
+	 * @param  inventory
+	 *         The new inventory for this unit.
+	 * @post   The inventory of this new unit is equal to
+	 *         the given inventory.
+	 *       | new.getInventory() == inventory
+	 * @throws NullPointerException
+	 *         The given inventory is not a valid inventory for any
+	 *         unit.
+	 *       | ! isValidInventory(getInventory())
+	 */
+	@Raw
+	public void setInventory(Set<Material> inventory) 
+			throws NullPointerException {
+		if (! isValidInventory(inventory))
+			throw new NullPointerException();
+		this.inventory = inventory;
+	}
+	
+	/**
+	 * Variable registering the inventory of this unit.
+	 */
+	private Set<Material> inventory;
+
+	/**
+	 * Add a given material to this unit's inventory.
+	 * @param material	The given material.
+	 * @effect	The given material is added to this unit's inventory and removed from this unit's world.
+	 * 			| this.getInventory().add(material)
+	 * 			| this.getWorld().removeMaterial(material)
+	 * @throws IllegalArgumentException
+	 */
+	public void addMaterialToInventory(Material material) throws IllegalArgumentException{
+		if(! this.canHaveAsMaterial(material))
+			throw new IllegalArgumentException();
+		this.getInventory().add(material);
+		this.getWorld().removeMaterial(material);
+	}
+	
+	/**
+	 * Check whether this unit can add a given material to it's inventory.
+	 * @param material	The given material.
+	 * @return	True if and only if the given material is effective, from the same world as this unit, has a position that is
+	 * 			an adjacent position for this unit and this unit's inventory is not full.
+	 * 			| result == (! material == null) && (material.getWorld().equals(this.getWorld()))
+	 * 			| 			&& (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), 
+	 * 			| 																		material.getCubePositionVector())))
+	 * 			| 				&& (this.getInventory().size() < inventoryCapacity)
+	 */
+	public boolean canHaveAsMaterial(Material material){
+		if(material == null)
+			return false;
+		if(! material.getWorld().equals(this.getWorld()))
+			return false;
+		if(! this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), material.getCubePositionVector())))
+			return false;
+		if(this.getInventory().size() == inventoryCapacity)
+			return false;
+		return true;			
+	}
+	
+	/**
+	 * Remove a given material from this unit's inventory.
+	 * @param material	The given material.
+	 * @effect	The given material is removed from his unit's inventory, the material's position is set 
+	 * 			to this unit's current position and is added to this unit's world.
+	 * 			| this.getInventory().remove(material)
+	 * 			| material.setUnitPosition(this.getUnitPosition())
+	 * 			| this.getWorld().addMaterial(material)
+	 * @throws IllegalArgumentException
+	 * 			The given material is not in this unit's inventory.
+	 * 			| ! this.inInventory(material)
+	 */
+	@Model
+	private void removeMaterial(Material material) throws IllegalArgumentException {
+		if(! this.inInventory(material))
+			throw new IllegalArgumentException("The given material is not in this unit's inventory");
+		this.getInventory().remove(material);
+		material.setUnitPosition(this.getUnitPosition());
+		this.getWorld().addMaterial(material);
+	}
+	
+	/**
+	 * Empty this unit's inventory at the given position.
+	 * @param	position	The given position.
+	 * @effect	All materials are removed from this unit's inventory and are given the given position as their position.
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	material.setUnitPosition(position)
+	 * 			| 	this.removeMaterial(material)
+	 */
+	public void emptyInventory(PositionVector position){
+		for(Material material : this.getInventory()){
+			material.setUnitPosition(position);
+			this.removeMaterial(material);
+		}
+	}
+	
+	/**
+	 * Check whether a given material is in this unit's inventory.
+	 * @param material	The given material.
+	 * @return	True if and only if this unit's inventory contains the given material.
+	 * 			| result == this.getInventory().contains(material)
+	 */
+	public boolean inInventory(Material material){
+		if(material == null)
+			return false;
+		return this.getInventory().contains(material);
+	}
+	
+	/**
+	 * Return the work position of this unit.
+	 */
+	@Basic @Raw
+	public PositionVector getWorkPosition() {
+		return this.workPosition;
+	}
+	
+	/**
+	 * Check whether the given work position is a valid work position for
+	 * any unit.
+	 *  
+	 * @param  work position
+	 *         The work position to check.
+	 * @return True if and only if the given work position is null or a valid adjacent position for this unit.
+	 *       | result == ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), 
+	 *       | 																								workPosition)))
+	*/
+	public boolean isValidWorkPosition(PositionVector workPosition) {
+		return ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(),
+				workPosition))));
+	}
+	
+	/**
+	 * Set the work position of this unit to the given work position.
+	 * 
+	 * @param  workPosition
+	 *         The new work position for this unit.
+	 * @post   The work position of this new unit is equal to
+	 *         the given work position.
+	 *       | new.getWorkPosition() == workPosition
+	 * @throws IllegalArgumentException
+	 *         The given work position is not a valid work position for any
+	 *         unit.
+	 *       | ! isValidWorkPosition(getWorkPosition())
+	 */
+	@Raw
+	public void setWorkPosition(PositionVector workPosition) 
+			throws IllegalArgumentException {
+		if (! isValidWorkPosition(workPosition))
+			throw new IllegalArgumentException();
+		this.workPosition = workPosition;
+	}
+	
+	/**
+	 * Variable registering the work position of this unit.
+	 */
+	private PositionVector workPosition;
+	
+	/**
+	 * Return the defend attempts map of this unit.
+	 */
+	@Basic @Raw
+	public HashMap<Unit,Boolean> getDefendAttempts() {
+		return this.defendAttempts;
+	}
+	
+	/**
+	 * Check whether the given defend attempts map is a valid defend attempts map for
+	 * any unit.
+	 *  
+	 * @param  defend attempts map
+	 *         The defend attempts map to check.
+	 * @return 
+	 *       | result == (defendAttempts != null)
+	*/
+	public static boolean isValidDefendAttempts(HashMap<Unit,Boolean> defendAttempts) {
+		return (defendAttempts != null);
+	}
+	
+	/**
+	 * Set the defend attempts map of this unit to the given defend attempts map.
+	 * 
+	 * @param  defendAttempts
+	 *         The new defend attempts map for this unit.
+	 * @post   The defend attempts map of this new unit is equal to
+	 *         the given defend attempts map.
+	 *       | new.getDefendAttempts() == defendAttempts
+	 * @throws NullPointerException
+	 *         The given defend attempts map is not a valid defend attempts map for any
+	 *         unit.
+	 *       | ! isValidDefendAttempts(getDefendAttempts())
+	 */
+	@Raw
+	public void setDefendAttempts(HashMap<Unit,Boolean> defendAttempts) 
+			throws NullPointerException {
+		if (! isValidDefendAttempts(defendAttempts))
+			throw new NullPointerException();
+		this.defendAttempts = defendAttempts;
+	}
+	
+	/**
+	 * Variable registering the defend attempts map of this unit.
+	 */
+	private HashMap<Unit,Boolean> defendAttempts;
+	
+	/**
+	 * Register a defend attempt of this unit, for a given attacker and a defend attempt.
+	 * @param attacker	The given attacking unit.
+	 * @param couldDefendFlag	The given outcome of the defend attempt.
+	 * @effect	The attacking unit and given outcome are put into this unit's defend attempts map.
+	 * 			| this.getDefendAttempts().put(attacker, couldDefendFlag)
+	 * @throws IllegalArgumentException
+	 * 			This unit can't have the given attacker in a defend attempt.
+	 * 			| ! canHaveAsDefendAttempt(attacker)
+	 */
+	public void addDefendAttempt(Unit attacker, boolean couldDefendFlag) throws IllegalArgumentException {
+		if(! canHaveAsDefendAttempt(attacker))
+			throw new IllegalArgumentException();
+		this.getDefendAttempts().put(attacker, couldDefendFlag);
+	}
+	
+	/**
+	 * Remove the given attacker from this unit's defend attempts map.
+	 * @param attacker	The given attacking unit.
+	 * @effect	The given attacker is removed as a key in this unit's defend attempts map.
+	 * 			| this.getDefendAttempts().remove(attacker)
+	 * @throws NullPointerException
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 * @throws IllegalArgumentException
+	 * 			This unit does not have the given attacker in any of it's defend attempts.
+	 * 			! this.hasAsDefendAttempt(attacker)
+	 */
+	public void removeDefendAttempt(Unit attacker) throws NullPointerException, IllegalArgumentException {
+		if(! this.hasAsDefendAttempt(attacker))
+			throw new IllegalArgumentException("This unit does not have the given attacker in any of it's defend attempts!");
+		this.getDefendAttempts().remove(attacker);
+	}
+	
+	/**
+	 * Check whether this unit can have a given attacker in a defend attempt.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the given attacker is effective and a unit of this unit's world and not already in a defend
+	 * 			attempt of this unit.
+	 * 			result == ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)))
+	 */
+	public boolean canHaveAsDefendAttempt(Unit attacker){
+		return ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)));
+	}
+	
+	/**
+	 * Check whether this unit has a defend attempt for the given attacker.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the given attacker is effective and is a key in this unit's defend attempts map.
+	 * 			result == this.getDefendAttempts().containsKey(attacker)
+	 * @throws	NullPointerException	
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 */
+	public boolean hasAsDefendAttempt(Unit attacker) throws NullPointerException {
+		if(attacker == null)
+			throw new NullPointerException();
+		return this.getDefendAttempts().containsKey(attacker);
+	}
+	
+	/**
+	 * Get the outcome of the defend attempt of this unit against the given attacker.
+	 * @param attacker	The given attacking unit.
+	 * @return	True if and only if the value connected to the given attacker as key in this unit's defend attempts map is true.
+	 * 			| result == this.getDefendAttempts().get(attacker);
+	 * @throws NullPointerException
+	 * 			The given attacker is not effective.
+	 * 			| attacker == null
+	 * @throws IllegalArgumentException
+	 * 			This unit does not have the given attacker in any of its defend attempts.
+	 * 			| ! this.hasAsDefendAttempt(attacker)
+	 */
+	public boolean getDefendAttempt(Unit attacker) throws NullPointerException, IllegalArgumentException {
+		if(! this.hasAsDefendAttempt(attacker))
+			throw new IllegalArgumentException();
+		return this.getDefendAttempts().get(attacker);
+	}
+	
+	/**
+	 * Return the target of this unit.
+	 */
+	@Basic @Raw
+	public Unit getTarget() {
+		return this.target;
+	}
+	
+	/**
+	 * Check whether the given target is a valid target for
+	 * any unit.
+	 *  
+	 * @param  target
+	 *         The target to check.
+	 * @return True if and only if the given target belongs to this unit's world or is not effective.
+	 *       | result == (target == null) || (this.getWorld().hasAsUnit(target))
+	*/
+	public boolean isValidTarget(Unit target) {
+		return ((target == null) || (this.getWorld().hasAsUnit(target)));
+	}
+	
+	/**
+	 * Set the target of this unit to the given target.
+	 * 
+	 * @param  target
+	 *         The new target for this unit.
+	 * @post   The target of this new unit is equal to
+	 *         the given target.
+	 *       | new.getTarget() == target
+	 * @throws IllegalArgumentException
+	 *         The given target is not a valid target for any
+	 *         unit.
+	 *       | ! isValidTarget(getTarget())
+	 */
+	@Raw
+	public void setTarget(Unit target) 
+			throws IllegalArgumentException {
+		if (! isValidTarget(target))
+			throw new IllegalArgumentException();
+		this.target = target;
+	}
+	
+	/**
+	 * Variable registering the target of this unit.
+	 */
+	private Unit target;
+	
+	/**
+	 * Return a position to which this unit can move when dodging.
+	 * @return	A random adjacent position of this unit, on the which this unit can stand.
+	 * 			| Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
+	 *			| validAdjacents.add(this.getCubePositionVector());
+	 *			| for(PositionVector adjacent : validAdjacents){
+	 *			| 	if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
+	 *			| 	validAdjacents.remove(adjacent)}
+	 *			| Random generator = new Random();
+	 *			| PositionVector[] positions = (PositionVector[]) validAdjacents.toArray();
+	 *			| PositionVector position = positions[generator.nextInt(positions.length)];
+	 *			| result == new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
+	 *			| 		position.getZArgument() + generator.nextDouble())
+	 * @throws	IllegalStateException
+	 * 			This unit's world is not effective.
+	 * 			| this.getWorld() == null
+	 */
+	private PositionVector getDodgeDestination() throws IllegalStateException {
+		if(this.getWorld() == null)
+			throw new IllegalStateException();
+		Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
+		validAdjacents.add(this.getCubePositionVector());
+		for(PositionVector adjacent : validAdjacents){
+			if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
+				validAdjacents.remove(adjacent);
+		}
+		Random generator = new Random();
+		PositionVector[] positions = (PositionVector[]) validAdjacents.toArray();
+		PositionVector position = positions[generator.nextInt(positions.length)];
+		return new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
+				position.getZArgument() + generator.nextDouble());
+	}
+	
+	/**
+	 * Returns a random enemy that is located in a neighboring cube of this unit or in this unit's cube.
+	 * @return	Null if there aren't any adjacent enemies.
+	 * 			| result == null
+	 * @return	A random enemy from all the adjacent enemies of this unit.
+	 * 			| result == adjacentEnemies[(new Random()).nextInt((Unit[]) this.getWorld().getAdjacentEnemies(this).toArray().length)]
+	 */
+	private Unit getRandomAdjacentEnemy() {
+		Random generator = new Random();
+		Unit[] adjacentEnemies = (Unit[]) this.getWorld().getAdjacentEnemies(this).toArray();
+		if(adjacentEnemies.length == 0)
+			return null;
+		return adjacentEnemies[generator.nextInt(adjacentEnemies.length)];
+	}
+	
+	/**
+	 * Return the effective weight of this unit, this unit's weight plus everything it's carrying.
+	 * @return	This unit's weight plus the weight of everything that's in it's inventory.
+	 * 			| int weight = this.getWeight()
+	 * 			| for(Material object : this.getInventory())
+	 * 			| 	weight = weight + object.getWeight()
+	 * 			| result == weight
+	 */
+	public int getEffectiveWeight() {
+		int weight = this.getWeight();
+		for(Material object : this.getInventory())
+			weight = weight + object.getWeight();
+		return weight;
+	}
+	
+	/**
+	 * Check whether this unit is carrying a log.
+	 * @return	True if and only if this unit has a Log in it's inventory.
+	 * 			| boolean flag = false
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	if(material.getClass().equals(Log.class))
+	 * 			| 		flag = true
+	 * 			| result == flag
+	 */
+	public boolean isCarryingLog() {
+		for(Material material : this.getInventory()){
+			if(material.getClass().equals(Log.class))
+				return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Check whether this unit is carrying a boulder.
+	 * @return	True if and only if this unit has a Boulder in it's inventory.
+	 * 			| boolean flag = false
+	 * 			| for(Material material : this.getInventory())
+	 * 			| 	if(material.getClass().equals(Boulder.class))
+	 * 			| 		flag = true
+	 * 			| result == flag
+	 */
+	public boolean isCarryingBoulder() {
+		for(Material material : this.getInventory()){
+			if(material.getClass().equals(Boulder.class))
+				return true;
+		}
+		return false;
 	}
 }
