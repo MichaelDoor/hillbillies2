@@ -714,7 +714,7 @@ public class World {
 		boolean flag1 = (this.isValidPosition(unit.getUnitPosition()));
 		boolean flag2 = (! this.hasAsUnit(unit));
 		boolean flag3 = (this.getUnitSet().size() < maxNumberOfUnits);
-		boolean flag4 = (!((this.getFactionSet().size() > maxNbOfFactions - 1) && (! this.hasAsFaction(unit.getFaction()))));
+		boolean flag4 = (!((this.getFactionSet().size() > maxNbOfActiveFactions - 1) && (! this.hasAsFaction(unit.getFaction()))));
 		boolean flag5 = (! this.getCube(unit.getCubePosition()[0],unit.getCubePosition()[1],unit.getCubePosition()[2]).isSolid());
 		return (flag1 && flag2 && flag3 && flag4 && flag5);
 	}
@@ -1031,7 +1031,7 @@ public class World {
 	private boolean canHaveAsFaction(Faction faction){
 		boolean flag1 = (faction != null);
 		boolean flag2 = (! this.getFactionSet().contains(faction));
-		boolean flag3 = ((this.getFactionSet().size()) < maxNbOfFactions) || (((this.getFactionSet().size()) == maxNbOfFactions)
+		boolean flag3 = ((this.getFactionSet().size()) < maxNbOfActiveFactions) || (((this.getFactionSet().size()) == maxNbOfActiveFactions)
 				&& (faction.getUnitSet().isEmpty()));
 		return (flag1 && flag2 && flag3);
 	}
@@ -1063,9 +1063,9 @@ public class World {
 	}
 	
 	/**
-	 * Variable registering the maximum amount of factions allowed in any world.
+	 * Variable registering the maximum amount of active factions allowed in any world.
 	 */
-	private static int maxNbOfFactions = 5;
+	private static int maxNbOfActiveFactions = 5;
 	
 	/**
 	 * Return an automatically chosen faction for a unit.
@@ -1073,7 +1073,7 @@ public class World {
 	 * 			amount of units, when this world has already reached its maximum amount of factions.
 	 */
 	private Faction autoFaction() throws IllegalStateException{
-		if(this.getFactionSet().size() < maxNbOfFactions)
+		if(this.getFactionSet().size() < maxNbOfActiveFactions)
 			return new Faction();
 		else{
 			Faction smallestFaction = null;
