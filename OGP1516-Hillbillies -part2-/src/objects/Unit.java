@@ -107,7 +107,7 @@ public class Unit extends GameObject {
 	 * @param  weight		The weight for this new unit.
 	 * @param  faction 		The faction for this new unit.
 	 * @effect	The position of this new unit is set to the cube centre of the given position.
-	 * 			| this.setUnitPosition(centrePosition(position))
+	 * 			| this.setUnitPosition(PositionVector.centrePosition(position))
 	 * @post    The name of this new unit equals the given name.
 	 * 			| new.getName().equals(name)
 	 * @effect	The strength of this new unit is set to the given strength.
@@ -176,7 +176,7 @@ public class Unit extends GameObject {
 	 */
 	public Unit(PositionVector position, String name, int strength, int agility, int toughness,int weight, Faction faction) 
 													throws IllegalArgumentException, NullPointerException {
-		super(centrePosition(position));
+		super(PositionVector.centrePosition(position));
 		this.setName(name);
 		this.setStrength(makeInitialAttValue(strength));
 		this.setAgility(makeInitialAttValue(agility));
@@ -931,7 +931,7 @@ public class Unit extends GameObject {
 	public void moveTo(PositionVector destination) throws IllegalArgumentException, NullPointerException {
 		if(! this.getWorld().isValidStandingPosition(destination))
 			throw new IllegalArgumentException();
-		this.setDestination(centrePosition(destination));
+		this.setDestination(PositionVector.centrePosition(destination));
 		Map<PositionVector, Integer> path = this.getQueue();
 		if(! this.getUnitPosition().equals(destination)){
 			if(! path.containsKey(destination))
@@ -979,11 +979,11 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Return the base speed of this unit.
-	 * @return	The base speed of this unit calculated with a formula using the strength, agility and weight of this unit.
-	 * 			| result == 1.5*(this.getStrength() + this.getAgility())/(200*(this.getWeight()/100.0))
+	 * @return	The base speed of this unit calculated with a formula using the strength, agility and effective weight of this unit.
+	 * 			| result == 1.5*(this.getStrength() + this.getAgility())/(200*(this.getEffectiveWeight()/100.0))
 	 */
 	public double getBaseSpeed() {
-		return (1.5*(this.getStrength() + this.getAgility())/(200*(this.getWeight()/100.0)));
+		return (1.5*(this.getStrength() + this.getAgility())/(200*(this.getEffectiveWeight()/100.0)));
 	}
 	
 	/**
@@ -1021,39 +1021,7 @@ public class Unit extends GameObject {
 		return baseSpeed;
 	}
 	
-	//what if it's outside the game world?
-	/**
-	 * Check whether a given position is located in an adjacent cube of the position of this unit.
-	 * @param position	The position to check.
-	 * @return	True if and only if the given position is in an adjacent cube of this unit's position and is a valid unit position.
-	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
-	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
-	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
-	 *			|		&& (((Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 1) 
-	 *			|				|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 0) 
-	 *			|					|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == -1))
-	 *			|			&& (((Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1) 
-	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
-	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1))
-	 *			|				&& (this.isValidUnitPosition(position)))))
-	 */
-	public boolean isValidAdjacent(PositionVector position) {
-		if(! this.isValidUnitPosition(position))
-			return false;
-		int positionX = (int) position.getXArgument();
-		int positionY = (int) position.getYArgument();
-		int positionZ = (int) position.getZArgument();
-		int unitX = this.getCubePosition()[0];
-		int unitY = this.getCubePosition()[1];
-		int unitZ = this.getCubePosition()[2];
-		int[] difference = {Math.abs(unitX-positionX), Math.abs(unitY-positionY), Math.abs(unitZ-positionZ)};
-		if (((difference[0] == -1) || (difference[0] == 0) || (difference[0] == 1))
-				&& ((difference[1] == -1) || (difference[1] == 0) || (difference[1] == 1))
-				&& ((difference[2] == -1) || (difference[2] == 0) || (difference[2] == 1))){
-			return true;
-		}
-		return false;
-	}
+	
 	
 	/**
 	 * Let's this unit move to the center of the adjacent cube of which a position in it is given, if the unit is not already moving
@@ -1063,9 +1031,9 @@ public class Unit extends GameObject {
 	 * 			| this.setActivityStatus("move")
 	 * @effect	The current velocity of this unit is set by using the given position.
 	 * 			| this.setCurrentVelocity(calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
-	 * 			|						this.getUnitPosition(),centrePosition(PositionVector.sum(this.getUnitPosition(), position))))
+	 * 			|			this.getUnitPosition(),PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position))))
 	 * @effect	The next position of this unit is set by using the given position.
-	 * 			| this.setNextPosition(centrePosition(PositionVector.sum(this.getUnitPosition(), position)))
+	 * 			| this.setNextPosition(PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position)))
 	 * @effect	If the given position is the final destination of this unit, than this unit's destination is set to the given position.
 	 * 			| this.setDestination(this.getNextPosition());
 	 * @throws	IllegalArgumentException
@@ -1102,7 +1070,7 @@ public class Unit extends GameObject {
 			}
 			if(this.getActivityStatus() != "move") {
 				this.setActivityStatus("move");
-				PositionVector destination = centrePosition(PositionVector.sum(this.getUnitPosition(), position));
+				PositionVector destination = PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position));
 				PositionVector velocity = calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
 						destination, this.getUnitPosition());
 				this.setCurrentVelocity(velocity);
@@ -1139,83 +1107,22 @@ public class Unit extends GameObject {
 	}
 	
 	/**
-	 * Calculates the center position of the cube that contains the given position.
-	 * @param position	The given position.
-	 * @return	The center position as a vector.
-	 * 			| result == new PositionVector(Math.floor(position.getXArgument()) + (cubeLength/2),
-	 * 			|								Math.floor(position.getYArgument()) + (cubeLength/2),
-	 * 			|									Math.floor(position.getZArgument()) + (cubeLength/2))
-	 * @throws	NullPointerException
-	 * 			The given position is not an effective.
-	 * 			| position == null
-	 */
-	public static PositionVector centrePosition(PositionVector position) throws NullPointerException{
-		double x = Math.floor(position.getXArgument()) + (cubeLength/2);
-		double y = Math.floor(position.getYArgument()) + (cubeLength/2);
-		double z = Math.floor(position.getZArgument()) + (cubeLength/2);
-		return (new PositionVector(x,y,z));
-	}
-	
-	/**
-	 * A class variable, defining the length of one cube.
-	 */
-	private final static double cubeLength = 1.0;
-	
-	
-	/**
-	 * Return the activityStatus of this unit.
-	 */
-	@Basic @Raw
-	public String getActivityStatus() {
-		return this.activityStatus;
-	}
-	
-	/**
 	 * Check whether the given activityStatus is a valid activityStatus for
-	 * any unit.
+	 * this unit.
 	 *  
 	 * @param  activityStatus
 	 *         The activityStatus to check.
 	 * @return 
 	 *       | result == ((activityStatus.equals("move") || (activityStatus.equals("work")) || 
 	 *		 |					(activityStatus.equals("rest")) || (activityStatus.equals("attack")) ||
-	 *		 |						 (activityStatus.equals("default"))))
+	 *		 |						 (activityStatus.equals("default")) || (activityStatus.equals("fall"))))
 	 */
-	private static boolean isValidActivityStatus(String activityStatus) {
+	@Override
+	protected boolean isValidActivityStatus(String activityStatus) {
 		return ((activityStatus.equals("move") || (activityStatus.equals("work")) || 
 					(activityStatus.equals("rest")) || (activityStatus.equals("attack")) ||
-						(activityStatus.equals("default")) || (activityStatus.equals("fall"))));
+					(super.isValidActivityStatus(activityStatus))));
 	}
-	
-	/**
-	 * Set the activityStatus of this unit to the given activityStatus.
-	 * 
-	 * @param  activityStatus
-	 *         The new activityStatus for this unit.
-	 * @post   The activityStatus of this new unit is equal to
-	 *         the given activityStatus.
-	 *       | new.getActivityStatus() == activityStatus
-	 * @throws IllegalArgumentException
-	 *         The given activityStatus is not a valid activityStatus for any
-	 *         unit.
-	 *       | ! isValidActivityStatus(getActivityStatus())
-	 * @throws	NullPointerException
-	 * 			The activity status is not effective.
-	 * 			| activityStatus == null
-	 */
-	@Raw @Model
-	private void setActivityStatus(String activityStatus) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidActivityStatus(activityStatus))
-			throw new IllegalArgumentException();
-		this.activityStatus = activityStatus;
-	}
-	
-	/**
-	 * Variable registering the activityStatus of this unit.
-	 */
-	private String activityStatus;
-	
 	
 	/**
 	 * Return the current velocity of this unit, according to it's sprint status.
@@ -1233,110 +1140,6 @@ public class Unit extends GameObject {
 			return this.currentVelocity;
 		}
 	}
-	
-	/**
-	 * Return the current velocity of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getCurrentVelocityBasic() {
-		return this.currentVelocity;
-	}
-	
-	/**
-	 * Check whether the given current velocity is a valid current velocity for
-	 * any unit.
-	 *  
-	 * @param  current velocity
-	 *         The current velocity to check.
-	 * @return 
-	 *       | result == true
-	*/
-	private static boolean isValidCurrentVelocity(PositionVector currentVelocity) {
-		return true;
-	}
-	
-	/**
-	 * Set the current velocity of this unit to the given current velocity.
-	 * 
-	 * @param  currentVelocity
-	 *         The new current velocity for this unit.
-	 * @post   The current velocity of this new unit is equal to
-	 *         the given current velocity.
-	 *       | new.getCurrentVelocity() == currentVelocity
-	 * @throws IllegalArgumentException
-	 *         The given current velocity is not a valid current velocity for any
-	 *         unit.
-	 *       | ! isValidCurrentVelocity(getCurrentVelocity())
-	 * @throws	NullPointerException
-	 * 			The given velocity is not effective.
-	 * 			| currentVelocity == null
-	 */
-	@Raw @Model
-	private void setCurrentVelocity(PositionVector currentVelocity) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidCurrentVelocity(currentVelocity))
-			throw new IllegalArgumentException();
-		this.currentVelocity = currentVelocity;
-	}
-	
-	/**
-	 * Variable registering the current velocity of this unit.
-	 */
-	private PositionVector currentVelocity;
-	
-	
-	/**
-	 * Return the targeted adjacent position of this unit.
-	 */
-	@Basic @Raw
-	public PositionVector getNextPosition() {
-		return this.nextPosition;
-	}
-	
-	/**
-	 * Check whether the given targeted adjacent position is a valid targeted adjacent position for
-	 * any unit.
-	 *  
-	 * @param  targeted adjacent position
-	 *         The targeted adjacent position to check.
-	 * @return 
-	 *       | result == (this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition))
-	*/
-	private boolean isValidNextPosition(PositionVector nextPosition) {
-		return ((this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition)));
-	}
-	
-	/**
-	 * Set the targeted adjacent position of this unit to the given targeted adjacent position.
-	 * 
-	 * @param  nextPosition
-	 *         The new targeted adjacent position for this unit.
-	 * @post   The targeted adjacent position of this new unit is equal to
-	 *         the given targeted adjacent position.
-	 *       | new.getNextPosition() == new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(),
-	 *       | 																					 nextPosition.getZArgument())
-	 * @throws IllegalArgumentException
-	 *         The given targeted adjacent position is not a valid targeted adjacent position for any
-	 *         unit.
-	 *       | (! isValidNextPosition(getNextPosition()))
-	 * @throws	NullPointerException
-	 * 			The next position is not effective.
-	 * 			| nextPosition == null
-	 */
-	@Raw @Model
-	private void setNextPosition(PositionVector nextPosition) 
-			throws IllegalArgumentException, NullPointerException {
-		if (! isValidNextPosition(nextPosition)) {
-			throw new IllegalArgumentException();
-		}
-		this.nextPosition = new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(), nextPosition.getZArgument());
-	}
-	
-	/**
-	 * Variable registering the targeted adjacent position of this unit.
-	 */
-	private PositionVector nextPosition;
-	
 	
 	/**
 	 * Return the destination of this unit.
@@ -1555,7 +1358,8 @@ public class Unit extends GameObject {
 	 * 			Time is negative.
 	 * 			| time < 0
 	 */
-	private void miniMove(double dt, int multiplier) throws IllegalArgumentException {
+	@Override
+	protected void miniMove(double dt, int multiplier) throws IllegalArgumentException {
 		if (dt <0)
 			throw new IllegalArgumentException();
 		double distance = PositionVector.calcDistance(this.getUnitPosition(), this.getNextPosition());
@@ -1691,7 +1495,7 @@ public class Unit extends GameObject {
 	 * @effect	The activity status of this unit is set to work mode.
 	 * 			| this.setActivityStatus("work")
 	 * @effect	This unit's work position is set to the given target position.
-	 * 			| this.setWorkPosition(centrePosition(targetPosition))
+	 * 			| this.setWorkPosition(PositionVector.centrePosition(targetPosition))
 	 * @effect	This unit's work time is reset.
 	 * 			| this.resetWorkTime()
 	 * @effect	This unit's orientation is set to face the cube of the target position.
@@ -1710,7 +1514,7 @@ public class Unit extends GameObject {
 		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))	
 				throw new IllegalStateException();
 		this.setActivityStatus("work");
-		this.setWorkPosition(centrePosition(targetPosition));
+		this.setWorkPosition(PositionVector.centrePosition(targetPosition));
 		this.resetWorkTime();
 		PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getUnitPosition(), targetPosition);
 		this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
@@ -1771,7 +1575,8 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Invoke the effects caused by a labor of this unit.
-	 * @effect	If this unit's working position is not solid and its inventory is not empty, this unit empties its inventory.
+	 * @effect	If this unit's working position is not solid and its inventory is not empty, this unit empties its inventory at
+	 * 			it's working position;
 	 * 			| this.emptyInventory();
 	 * @effect	If this unit's working position refers to a workshop cube that contains a log and a boulder, this unit's equipment is 
 	 * 			improved.
@@ -1791,7 +1596,7 @@ public class Unit extends GameObject {
 			throw new IllegalStateException();
 		
 		if((! this.getWorld().isSolidPosition(this.getWorkPosition())) && (! this.getInventory().isEmpty()))
-			this.emptyInventory();
+			this.emptyInventory(this.getWorkPosition());
 		else if((this.getWorld().isWorkshop(this.getWorkPosition())) && (this.getWorld().containsLog(this.getWorkPosition()))
 				&& (this.getWorld().containsBoulder(this.getWorkPosition())))
 			this.improveEquipment();
@@ -2866,65 +2671,56 @@ public class Unit extends GameObject {
 		return ((world == null) || (world.canHaveAsUnit(this)));
 	}
 	
-	
-	/**
-	 * Check whether this unit should fall.
-	 * @return	True if and only if this unit does not have any solid adjacent cube.
-	 * 			| Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(this.getUnitPosition())
-	 * 			| for(PositionVector adjacent : adjacents)
-	 *			| 	(! this.getWorld().isSolidPosition(adjacent))
-	 */
-	private boolean fallCheck(){
-		if(this.getCubePosition()[2] == 0)
-			return false;
-		Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(this.getUnitPosition());
-		for(PositionVector adjacent : adjacents){
-			if(this.getWorld().isSolidPosition(adjacent))
-				return false;
-		}
-		return true;
-	}
-	
 	/**
 	 * Makes this unit fall.
-	 * @effect	This unit's activity status is set to 'fall', its minumum rest counter to zero, its next position and destination are 
+	 * @effect	This unit's activity status is set to 'fall', its minimum rest counter to zero, its next position and destination are 
 	 * 			set to the center of the cube underneath the cube this unit is occupying.
 	 * 			| this.setActivityStatus("fall")
 	 * 			| this.setMinRestCounter(0)
-	 * 			| this.setNextPosition(this.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
-	 * 			| this.setDestination(this.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 * 			| this.setNextPosition(PositionVector.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 * 			| this.setDestination(PositionVector.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
 	 */
-	private void fall() {
-		this.setActivityStatus("fall");
-		this.setMinRestCounter(0);
+	@Override
+	protected void fall() {
+		super.fall();
 		PositionVector cubePosition = new PositionVector(this.getCubePosition()[0], 
-									this.getCubePosition()[1], this.getCubePosition()[2]);
-		PositionVector fallToPosition = centrePosition(this.getWorld().getPositionUnderneath(cubePosition));
+				this.getCubePosition()[1], this.getCubePosition()[2]);
+		PositionVector fallToPosition = PositionVector.centrePosition(this.getWorld().getCubePositionUnderneath(cubePosition));
 		this.setNextPosition(fallToPosition);
+		this.setMinRestCounter(0);
 		this.setDestination(fallToPosition);
-		this.setCurrentVelocity(fallVelocity);
 	}
 	
 	/**
-	 * Variable registering the falling velocity of any unit.
+	 * Check whether this unit should fall.
+	 * @return	True if and only if this unit does not occupy a cube at the bottom of it's world (z = 0), does not have 
+	 * 			a solid cube underneath the cube it's occupying and does not have any adjacent solid cube.
+	 * 			| result == (! this.getCubePosition()[2] == 0) && (! this.getWorld().isSolidPosition(this.getCubePositionVector()))
+	 * 			|		&& (this.getWorld().hasSolidAdjacent(this.getWorld().getCube(this.getCubePosition()[0],
+	 * 			|														this.getCubePosition()[1],this.getCubePosition()[2])))
 	 */
-	private static PositionVector fallVelocity = new PositionVector(0, 0, -3);
+	@Override
+	protected boolean fallCheck(){
+		if(this.getCubePosition()[2] == 0)
+			return false;
+		if(this.getWorld().isSolidPosition(this.getCubePositionVector()))
+			return false;
+		int[] cubePosition = this.getCubePosition();
+		return this.getWorld().hasSolidAdjacent(this.getWorld().getCube(cubePosition[0],cubePosition[1],cubePosition[2]));
+	}
 	
 	/**
 	 * Terminate this unit.
-	 * @effect	This unit drops all objects from it's inventory and  is then removed from it's faction and it's world.
+	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction and it's world.
 	 * 			It's activity status, velocity, destination, faction, name, next position, world, defend attempts map, 
 	 * 			path and work position are given the null reference.
-	 * 			| this.emptyInventory()
+	 * 			| this.emptyInventory(this.getUnitPosition())
 	 * 			| this.getFaction().removeUnit(this)
 	 * 			| this.getWorld().removeUnit(this)
 	 * 			| this.activityStatus = null
-	 *			| this.currentVelocity = null
 	 *			| this.destination = null
 	 *			| this.faction = null
 	 *			| this.name = null
-	 *			| this.nextPosition = null
-	 *			| this.world = null
 	 *			| this.defendAttempts = null
 	 *			| this.inventory = null
 	 *			| this.path = null
@@ -2933,23 +2729,22 @@ public class Unit extends GameObject {
 	 * 			This unit is already terminated.
 	 * 			| this.isTerminated()
 	 */
-	private void terminate() throws IllegalStateException {
+	@Override
+	protected void terminate() throws IllegalStateException {
 		if(this.isTerminated())
 			throw new IllegalStateException("Already terminated.");
-		this.emptyInventory();
+		this.emptyInventory(this.getUnitPosition());
 		this.activityStatus = null;
-		this.currentVelocity = null;
 		this.destination = null;
 		this.getFaction().removeUnit(this);
 		this.faction = null;
 		this.name = null;
-		this.nextPosition = null;
 		this.getWorld().removeUnit(this);
-		this.world = null;
 		this.defendAttempts = null;
 		this.inventory = null;
 		this.path = null;
 		this.workPosition = null;
+		super.terminate();
 	}
 	
 	/**
@@ -2962,8 +2757,8 @@ public class Unit extends GameObject {
 	 */
 	public boolean isTerminated(){
 		return ((this.getFaction().hasAsUnit(this)) && (this.getWorld().hasAsUnit(this)) && (this.activityStatus == null)
-				&& (this.currentVelocity == null) && (this.destination == null) && (this.faction == null)
-				&& (this.name == null) && (this.nextPosition == null) && (this.world == null));
+				&& (this.destination == null) && (this.faction == null)
+				&& (this.name == null) && (super.isTerminated()));
 	}
 	
 	/**
@@ -3124,14 +2919,18 @@ public class Unit extends GameObject {
 	}
 	
 	/**
-	 * Empty this unit's inventory.
-	 * @effect	All materials are removed from this unit's inventory.
+	 * Empty this unit's inventory at the given position.
+	 * @param	position	The given position.
+	 * @effect	All materials are removed from this unit's inventory and are given the given position as their position.
 	 * 			| for(Material material : this.getInventory())
+	 * 			| 	material.setUnitPosition(position)
 	 * 			| 	this.removeMaterial(material)
 	 */
-	public void emptyInventory(){
-		for(Material material : this.getInventory())
+	public void emptyInventory(PositionVector position){
+		for(Material material : this.getInventory()){
+			material.setUnitPosition(position);
 			this.removeMaterial(material);
+		}
 	}
 	
 	/**
@@ -3335,10 +3134,10 @@ public class Unit extends GameObject {
 	 * @param  target
 	 *         The target to check.
 	 * @return True if and only if the given target belongs to this unit's world or is not effective.
-	 *       | result == (this.getWorld().hasAsUnit(target)) || (target == null)
+	 *       | result == (target == null) || (this.getWorld().hasAsUnit(target))
 	*/
 	public boolean isValidTarget(Unit target) {
-		return ((this.getWorld().hasAsUnit(target)) || (target == null));
+		return ((target == null) || (this.getWorld().hasAsUnit(target)));
 	}
 	
 	/**
@@ -3413,5 +3212,20 @@ public class Unit extends GameObject {
 		if(adjacentEnemies.length == 0)
 			return null;
 		return adjacentEnemies[generator.nextInt(adjacentEnemies.length)];
+	}
+	
+	/**
+	 * Return the effective weight of this unit, this unit's weight plus everything it's carrying.
+	 * @return	This unit's weight plus the weight of everything that's in it's inventory.
+	 * 			| int weight = this.getWeight()
+	 * 			| for(Material object : this.getInventory())
+	 * 			| 	weight = weight + object.getWeight()
+	 * 			| result == weight
+	 */
+	public int getEffectiveWeight() {
+		int weight = this.getWeight();
+		for(Material object : this.getInventory())
+			weight = weight + object.getWeight();
+		return weight;
 	}
 }

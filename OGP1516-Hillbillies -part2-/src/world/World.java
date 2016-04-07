@@ -393,9 +393,9 @@ public class World {
 		this.caveIn(x, y, z);
 		Cube newCube = this.getCube(x, y, z);
 		if((terrain == 1) &&(! newCube.containsBoulder()))
-			newCube.addAsContent(new Boulder(Unit.centrePosition(new PositionVector(x, y, z))));
+			newCube.addAsContent(new Boulder(PositionVector.centrePosition(new PositionVector(x, y, z))));
 		if((terrain == 2) &&(! newCube.containsLog()))
-			newCube.addAsContent(new Log(Unit.centrePosition(new PositionVector(x, y, z))));	
+			newCube.addAsContent(new Log(PositionVector.centrePosition(new PositionVector(x, y, z))));	
 	}
 	
 	/**
@@ -719,7 +719,7 @@ public class World {
 	 * 			A unit with this generated name and position and with random attribute values is initialized and added to this world.
 	 */
 	public void spawnUnit(boolean enableDefaultBehaviour) {
-		PositionVector position = Unit.centrePosition(this.randomStandingPosition());
+		PositionVector position = PositionVector.centrePosition(this.randomStandingPosition());
 		String name = "Unit";
 		Unit unit = new Unit(position, name, this.autoFaction());
 		if(enableDefaultBehaviour == true)
@@ -1072,7 +1072,7 @@ public class World {
 	 * @throws	NullPointerException
 	 * 			The given position is not effective.
 	 */
-	public PositionVector getPositionUnderneath(PositionVector position) throws IllegalArgumentException, NullPointerException {
+	public PositionVector getCubePositionUnderneath(PositionVector position) throws IllegalArgumentException, NullPointerException {
 		if(position.getZArgument() == 0)
 			throw new IllegalArgumentException("Given position is at the bottom of this world, nothing underneath!");
 		int x = (int) position.getXArgument();

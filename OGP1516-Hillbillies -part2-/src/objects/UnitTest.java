@@ -152,22 +152,22 @@ public class UnitTest {
 		assertEquals(1.5,tester.getBaseSpeed(),0.00001);
 	}
 	
-	@Test
-	public void startWork_LegalCase() throws Exception {
-		tester.work();
-		assertEquals(tester.getActivityStatus(),"work");
-	}
-	
-	@Test
-	public void work_LegalCase() {
-		tester.work();
-		double i = 500/tester.getStrength();
-		while(i > 0){
-			tester.advanceTime(0.1);
-			i = i-0.1;
-		}
-		assertEquals((tester.getActivityStatus()).equals("default"), true);
-	}
+//	@Test
+//	public void startWork_LegalCase() throws Exception {
+//		tester.work();
+//		assertEquals(tester.getActivityStatus(),"work");
+//	}
+//	
+//	@Test
+//	public void work_LegalCase() {
+//		tester.work();
+//		double i = 500/tester.getStrength();
+//		while(i > 0){
+//			tester.advanceTime(0.1);
+//			i = i-0.1;
+//		}
+//		assertEquals((tester.getActivityStatus()).equals("default"), true);
+//	}
 //	
 //	@Test
 //	public void advanceTime_LegalMoveToAdjacent() {

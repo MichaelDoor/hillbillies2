@@ -147,15 +147,8 @@ public abstract class GameObject {
 	/**
 	 * Advance time for this game object by a given amount of time.
 	 * @param dt	The given amount of time.
-	 * @throws	IllegalArgumentException
-	 * 			Time is either negative or equal to or greater then 0.2s.
 	 */
-	public void advanceTime(double dt)throws IllegalArgumentException {
-		if ((dt < 0) || (dt >= 0.2)) {
-			throw new IllegalArgumentException();
-		}
-		
-	}
+	public abstract void advanceTime(double dt);
 	
 	/**
 	 * Return the world of this game object.
@@ -227,5 +220,242 @@ public abstract class GameObject {
 		int[] cubePosition = this.getCubePosition();
 		return new PositionVector(cubePosition[0], cubePosition[1], cubePosition[2]);
 	}
-
+	
+	/**
+	 * Return the targeted adjacent position of this unit.
+	 */
+	@Basic @Raw
+	public PositionVector getNextPosition() {
+		return this.nextPosition;
+	}
+	
+	/**
+	 * Check whether the given targeted adjacent position is a valid targeted adjacent position for
+	 * any unit.
+	 *  
+	 * @param  targeted adjacent position
+	 *         The targeted adjacent position to check.
+	 * @return 
+	 *       | result == (this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition))
+	*/
+	protected boolean isValidNextPosition(PositionVector nextPosition) {
+		return ((this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition)));
+	}
+	
+	/**
+	 * Set the targeted adjacent position of this unit to the given targeted adjacent position.
+	 * 
+	 * @param  nextPosition
+	 *         The new targeted adjacent position for this unit.
+	 * @post   The targeted adjacent position of this new unit is equal to
+	 *         the given targeted adjacent position.
+	 *       | new.getNextPosition() == new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(),
+	 *       | 																					 nextPosition.getZArgument())
+	 * @throws IllegalArgumentException
+	 *         The given targeted adjacent position is not a valid targeted adjacent position for any
+	 *         unit.
+	 *       | (! isValidNextPosition(getNextPosition()))
+	 * @throws	NullPointerException
+	 * 			The next position is not effective.
+	 * 			| nextPosition == null
+	 */
+	@Raw @Model
+	protected void setNextPosition(PositionVector nextPosition) 
+			throws IllegalArgumentException, NullPointerException {
+		if (! isValidNextPosition(nextPosition)) {
+			throw new IllegalArgumentException();
+		}
+		this.nextPosition = new PositionVector(nextPosition.getXArgument(), nextPosition.getYArgument(), nextPosition.getZArgument());
+	}
+	
+	/**
+	 * Variable registering the targeted adjacent position of this unit.
+	 */
+	protected PositionVector nextPosition;
+	
+	/**
+	 * Check whether a given position is located in an adjacent cube of the position of this game object.
+	 * @param position	The position to check.
+	 * @return	True if and only if the given position is in an adjacent cube of this game object's position 
+	 * 			and is a valid unit position.
+	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
+	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
+	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
+	 *			|		&& (((Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 1) 
+	 *			|				|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == 0) 
+	 *			|					|| (Math.abs(this.getCubePosition()[1] - (int) position.getYArgument()) == -1))
+	 *			|			&& (((Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1) 
+	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
+	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1))
+	 *			|				&& (this.isValidUnitPosition(position)))))
+	 */
+	public boolean isValidAdjacent(PositionVector position) {
+		if(! this.isValidUnitPosition(position))
+			return false;
+		int positionX = (int) position.getXArgument();
+		int positionY = (int) position.getYArgument();
+		int positionZ = (int) position.getZArgument();
+		int unitX = this.getCubePosition()[0];
+		int unitY = this.getCubePosition()[1];
+		int unitZ = this.getCubePosition()[2];
+		int[] difference = {Math.abs(unitX-positionX), Math.abs(unitY-positionY), Math.abs(unitZ-positionZ)};
+		if (((difference[0] == -1) || (difference[0] == 0) || (difference[0] == 1))
+				&& ((difference[1] == -1) || (difference[1] == 0) || (difference[1] == 1))
+				&& ((difference[2] == -1) || (difference[2] == 0) || (difference[2] == 1))){
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Variable registering the falling velocity of any game object.
+	 */
+	protected static PositionVector fallVelocity = new PositionVector(0, 0, -3);
+	
+	/**
+	 * Makes this game object fall.
+	 * @effect	This game object's activity status is set to 'fall', it's current velocity to the fall velocity of any game object.
+	 * 			| this.setActivityStatus("fall")
+	 * 			| this.setNextPosition(PositionVector.centrePosition(this.getWorld().getPositionUnderneath(this.getCubePosition())))
+	 */
+	protected void fall() {
+		this.setActivityStatus("fall");
+		this.setCurrentVelocity(fallVelocity);
+	}
+	
+	/**
+	 * Check whether this game object should fall.
+	 */
+	protected abstract boolean fallCheck();
+	
+	/**
+	 * Return the current velocity of this game object.
+	 */
+	@Basic @Raw
+	public PositionVector getCurrentVelocityBasic() {
+		return this.currentVelocity;
+	}
+	
+	/**
+	 * Check whether the given current velocity is a valid current velocity for
+	 * any game object.
+	 *  
+	 * @param  current velocity
+	 *         The current velocity to check.
+	 * @return 
+	 *       | result == true
+	*/
+	protected static boolean isValidCurrentVelocity(PositionVector currentVelocity) {
+		return true;
+	}
+	
+	/**
+	 * Set the current velocity of this game object to the given current velocity.
+	 * 
+	 * @param  currentVelocity
+	 *         The new current velocity for this game object.
+	 * @post   The current velocity of this game object is equal to
+	 *         the given current velocity.
+	 *       | new.getCurrentVelocity() == currentVelocity
+	 * @throws IllegalArgumentException
+	 *         The given current velocity is not a valid current velocity for any
+	 *         game object.
+	 *       | ! isValidCurrentVelocity(getCurrentVelocity())
+	 * @throws	NullPointerException
+	 * 			The given velocity is not effective.
+	 * 			| currentVelocity == null
+	 */
+	@Raw @Model
+	protected void setCurrentVelocity(PositionVector currentVelocity) 
+			throws IllegalArgumentException, NullPointerException {
+		if (! isValidCurrentVelocity(currentVelocity))
+			throw new IllegalArgumentException();
+		this.currentVelocity = currentVelocity;
+	}
+	
+	/**
+	 * Variable registering the current velocity of this game object.
+	 */
+	protected PositionVector currentVelocity;
+	
+	/**
+	 * Terminate this game object.
+	 * @effect	This game object's velocity, next position, position and world are set null.
+	 * @throws IllegalStateException
+	 * 			This game object is already terminated.
+	 */
+	protected void terminate() throws IllegalStateException {
+		if(this.isTerminated())
+			throw new IllegalStateException("Game object already terminated!");
+		this.currentVelocity = null;
+		this.nextPosition = null;
+		this.position = null;
+		this.world = null;
+	}
+	
+	/**
+	 * Check whether this game object is terminated.
+	 * @return	True if and only if his game object's velocity, next position, position and world are null.
+	 */
+	public boolean isTerminated() {
+		return ((this.getCurrentVelocityBasic() == null) && (this.getNextPosition() == null) && (this.getUnitPosition() == null)
+				&& (this.getWorld() == null));
+	}
+	
+	/**
+	 * Return the activityStatus of this game object.
+	 */
+	@Basic @Raw
+	public String getActivityStatus() {
+		return this.activityStatus;
+	}
+	
+	/**
+	 * Check whether the given activityStatus is a valid activityStatus for
+	 * this game object.
+	 *  
+	 * @param  activityStatus
+	 *         The activityStatus to check.
+	 * @return 
+	 *       | result == (activityStatus.equals("fall")) || (activityStatus.equals("default"))
+	 */
+	protected boolean isValidActivityStatus(String activityStatus) {
+		return ((activityStatus.equals("default")) || (activityStatus.equals("fall")));
+	}
+	
+	/**
+	 * Set the activityStatus of this game object to the given activityStatus.
+	 * 
+	 * @param  activityStatus
+	 *         The new activityStatus for this game object.
+	 * @post   The activityStatus of this game object is equal to
+	 *         the given activityStatus.
+	 *       | new.getActivityStatus() == activityStatus
+	 * @throws IllegalArgumentException
+	 *         The given activityStatus is not a valid activityStatus for any
+	 *         game object.
+	 *       | ! isValidActivityStatus(getActivityStatus())
+	 * @throws	NullPointerException
+	 * 			The activity status is not effective.
+	 * 			| activityStatus == null
+	 */
+	@Raw @Model
+	protected void setActivityStatus(String activityStatus) 
+			throws IllegalArgumentException, NullPointerException {
+		if (! this.isValidActivityStatus(activityStatus))
+			throw new IllegalArgumentException();
+		this.activityStatus = activityStatus;
+	}
+	
+	/**
+	 * Variable registering the activityStatus of this game object.
+	 */
+	protected String activityStatus;
+	
+	/**
+	 * A method to make this game object move for a given time with a multiplied speed.
+	 * @param dt	Time
+	 * @param multiplier	The given multiplyer.
+	 */
+	protected abstract void miniMove(double dt, int multiplier);
 }
