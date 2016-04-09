@@ -6,9 +6,9 @@ import be.kuleuven.cs.som.annotate.*;
 import cube.*;
 import faction.Faction;
 import hillbillies.part2.listener.*;
-import hillbillies.util.*;
 import objects.*;
 import position.PositionVector;
+import hillbillies.util.*;
 
 /**
  * A class of worlds.
@@ -406,8 +406,8 @@ public class World {
 	 * @param y	The y coordinate of the targeted cube.
 	 * @param z	The z coordinate of the targeted cube.
 	 * @effect	Creates a new air cube, injects the content of the old cube into it and adds the item that spawns by the cave-in
-	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube and let's this world make its
-	 * terrain a valid terrain.
+	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube and propagates the cave in to
+	 * neighboring cubes that should cave-in.
 	 * @throws	IllegalStateException
 	 * 			The targeted cube is passable.
 	 * @throws	IllegalArgumentException
@@ -429,7 +429,8 @@ public class World {
 			this.addMaterial(item);
 		}
 		this.replaceCube(cube);
-		this.propagateCaveIn(cube.getPosition());
+		List<int[]> others = this.connectedToBorder.changeSolidToPassable(x, y, z);
+		this.propagateCaveIn(others);
 	}
 	
 	/**
@@ -486,28 +487,21 @@ public class World {
 	}
 	
 	/**
-	 * Makes a cave-in of a cube at a given position propagate to its direct adjacent cubes,
-	 * resulting in possible cave-ins of directly adjacent solid cubes.
-	 * @param position	The given position.
-	 * @effect	Gets all directly adjacent cubes of the cube at the given position. Keeps the ones that are solid and checks them to
-	 * verify if they's connected to a border of the game world through other solid cubes or by itself. If not, they're caved-in.
+	 * Causes cave-ins on the given positions if possible.
+	 * @param positionsList	The given position collection.
+	 * @effect	Checks all the given positions if they refer to a solid cube and if so, makes the cave-in.
 	 * @throws NullPointerException
 	 * 			The given position is not effective.
 	 * @throws IllegalArgumentException
-	 * 			The given position is not a valid position for this world.
+	 * 			One of the positions in the given position collection is not solid.
 	 */
-	private void propagateCaveIn(PositionVector position) throws NullPointerException, IllegalArgumentException {
-		if(! this.isValidPosition(position))
-			throw new IllegalArgumentException("Position not located in this world!");
-		Set<Cube> directAdjacents = this.getDirectAdjacentCubes(this.getCube((int) position.getXArgument(), 
-				(int) position.getYArgument(), (int) position.getZArgument()));
-		for(Cube adjacent : directAdjacents) {
-			if(! adjacent.isSolid())
-				directAdjacents.remove(adjacent);
-			if(! this.connectedToBorder.isSolidConnectedToBorder((int) adjacent.getPosition().getXArgument(),
-					(int) adjacent.getPosition().getYArgument(), (int) adjacent.getPosition().getZArgument()))
-				this.caveIn((int) adjacent.getPosition().getXArgument(),
-					(int) adjacent.getPosition().getYArgument(), (int) adjacent.getPosition().getZArgument());
+	private void propagateCaveIn(List<int[]> positionsList) throws NullPointerException, IllegalArgumentException {
+		for(int[] position : positionsList){
+			PositionVector vector = new PositionVector(position[0],position[1],position[2]);
+			if(! this.isValidPosition(vector))
+				throw new IllegalArgumentException("One of the given positions is not a valid position for this world!");
+			if(this.isSolidPosition(vector))
+				this.caveIn(position[0], position[1], position[2]);
 		}
 	}
 	
@@ -520,6 +514,7 @@ public class World {
 	 * @throws NullPointerException
 	 * 			The given cube is not effective.
 	 */
+	@SuppressWarnings("unused")
 	private Set<Cube> getDirectAdjacentCubes(Cube cube) throws IllegalArgumentException, NullPointerException {
 		if(! this.isValidPosition(cube.getPosition()))
 			throw new IllegalArgumentException("Given cube not located in this world");
@@ -868,12 +863,14 @@ public class World {
 	/**
 	 * Add a given material to this world.
 	 * @param material	The given material.
-	 * @effect	The given material is added to the material set of this world and to the cube in which it is located.
+	 * @effect	The given material is added to the material set of this world and to the cube in which it is located, it's world is
+	 * 			change to this world.
 	 */
 	public void addMaterial(Material material){
 		this.getMaterialSet().add(material);
 		this.getCube(material.getCubePosition()[0], material.getCubePosition()[1], 
 				material.getCubePosition()[2]).addAsContent(material);
+		material.changeWorld(this);
 	}
 	
 	/**

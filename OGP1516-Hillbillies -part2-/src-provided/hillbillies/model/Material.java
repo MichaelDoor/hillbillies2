@@ -116,9 +116,9 @@ public abstract class Material extends GameObject {
 			throw new IllegalStateException();
 		super.fall();
 		PositionVector materialPosition = this.getUnitPosition();
-		double x = materialPosition.getXArgument() - 1.0;
-		double y = materialPosition.getYArgument() - 1.0;
-		double z = (int) (materialPosition.getZArgument() - 1.0);
+		double x = materialPosition.getXArgument();
+		double y = materialPosition.getYArgument();
+		double z = ((int) materialPosition.getZArgument()) - 1.0;
 		// not at the bottom of its current cube
 		if( this.getUnitPosition().getZArgument() > (int) this.getUnitPosition().getZArgument())
 			z = z + 1.0;
@@ -133,11 +133,15 @@ public abstract class Material extends GameObject {
 	 */
 	@Override
 	protected boolean fallCheck(){
-		if((this.getCubePosition()[2] == 0)
-			&& (Util.fuzzyEquals(this.getUnitPosition().getZArgument(),(int) this.getUnitPosition().getZArgument())))
-			return false;
+		if(this.getCubePosition()[2] == 0){
+			if(Util.fuzzyEquals(this.getUnitPosition().getZArgument(),(int) this.getUnitPosition().getZArgument()))
+				return false;
+			else
+				return true;
+		}
 		// at the bottom of its current cube
-		if((this.getWorld().isSolidPosition(this.getCubePositionVector()))
+		int[] cubePosition = this.getCubePosition();
+		if((this.getWorld().isSolidPosition(new PositionVector(cubePosition[0],cubePosition[1],cubePosition[2]-1)))
 				&& (Util.fuzzyEquals(this.getUnitPosition().getZArgument(),(int) this.getUnitPosition().getZArgument())))
 			return false;
 		return true;

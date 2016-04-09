@@ -13,15 +13,28 @@ import org.junit.Test;
 
 import cube.Cube;
 import hillbillies.part2.listener.DefaultTerrainChangeListener;
+import objects.Unit;
 import position.PositionVector;
 
 
 public class WorldTest {
 	
 	private World testWorld;
+	private static World world;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
+		int nbX = 10;
+		int nbY = 20;
+		int nbZ = 30;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[5][5][5] = 1;
+		matrix[4][5][5] = 1;
+		matrix[3][5][5] = 1;
+		matrix[2][5][5] = 1;
+		matrix[1][5][5] = 1;
+		matrix[0][5][5] = 1;
+		world = new World(matrix, new DefaultTerrainChangeListener());
 	}
 
 	@AfterClass
@@ -121,5 +134,14 @@ public class WorldTest {
 		assertEquals(true, solidCube.isSolid());
 		assertEquals(true, testWorld.hasSolidAdjacent(solidCube));
 	}
-
+	
+	@Test
+	public void spawnUnit_LegalCase(){
+		Unit unit = world.spawnUnit(false);
+		assertEquals(true, world.hasAsUnit(unit));
+		assertEquals(true, world.getCube(unit.getCubePosition()[0], unit.getCubePosition()[1], 
+				unit.getCubePosition()[2]).hasAsContent(unit));
+	}
+	
+	
 }

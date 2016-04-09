@@ -9,13 +9,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import faction.Faction;
+import hillbillies.part2.listener.DefaultTerrainChangeListener;
 import objects.*;
 import objects.Unit;
 import position.PositionVector;
+import world.World;
 
 public class AirTest {
 	
 	private Air testAir;
+	private World testWorld;
 	
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -27,7 +30,19 @@ public class AirTest {
 
 	@Before
 	public void setUp() throws Exception {
-		testAir = new Air(new PositionVector(0,0,0));
+		testAir = new Air(new PositionVector(6,6,6));
+		int nbX = 10;
+		int nbY = 20;
+		int nbZ = 30;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[6][5][5] = 1;
+		matrix[5][5][5] = 1;
+		matrix[4][5][5] = 1;
+		matrix[3][5][5] = 1;
+		matrix[2][5][5] = 1;
+		matrix[1][5][5] = 1;
+		matrix[0][5][5] = 1;
+		this.testWorld = new World(matrix, new DefaultTerrainChangeListener());
 	}
 
 	@After
@@ -67,11 +82,12 @@ public class AirTest {
 	}
 	
 	@Test
-	public void hasProperContent_IllegalCase() {
+	public void hasProperContent_LegalCase2() {
 		Unit unit = new Unit(testAir.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
-		testAir.addAsContent(unit);
+		unit.changeWorld(testWorld);
+		testWorld.addUnit(unit);
 		assertEquals(true, testAir.hasProperContent());
-		unit.moveTo(new PositionVector(1,0,0));
+		unit.moveTo(new PositionVector(6.5,5,6.5));
 		unit.advanceTime(0.19);
 		unit.advanceTime(0.19);
 		unit.advanceTime(0.19);
@@ -79,6 +95,6 @@ public class AirTest {
 		unit.advanceTime(0.19);
 		unit.advanceTime(0.19);
 		unit.advanceTime(0.19);
-		assertEquals(false, testAir.hasProperContent());
+		assertEquals(true, testAir.hasProperContent());
 	}
 }

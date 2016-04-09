@@ -175,10 +175,10 @@ public abstract class Cube {
 	 * @param object	The given object.
 	 * @effect	The given object is added to the content of this cube.
 	 * @throws IllegalArgumentException
-	 * 			The given object is not a valid content for this cube.
+	 * 			The given object is not a valid content for this cube or is already in this cube's content.
 	 */
 	public void addAsContent(GameObject object) throws IllegalArgumentException{
-		if (! this.canHaveAsContent(object))
+		if ((! this.canHaveAsContent(object)) || (this.hasAsContent(object)))
 			throw new IllegalArgumentException();
 		this.content.add(object);
 	}
@@ -201,7 +201,7 @@ public abstract class Cube {
 	/**
 	 * Check whether the given object can belong to the content of this cube.
 	 * @param object	The given object.
-	 * @return	True if and only if the object is effective and is located in this cube.
+	 * @return	True if and only if the object is effective and is located in this cube..
 	 */
 	public boolean canHaveAsContent(GameObject object) {
 		PositionVector objectPosition = new PositionVector(object.getCubePosition()[0],object.getCubePosition()[1]

@@ -67,20 +67,5 @@ public class WorkshopTest {
 		assertEquals(true, testWorkshop.hasProperContent());
 	}
 	
-	@Test
-	public void hasProperContent_IllegalCase() {
-		Unit unit = new Unit(testWorkshop.getPosition(), "Ikke", 50, 50, 50, 50, new Faction());
-		testWorkshop.addAsContent(unit);
-		assertEquals(true, testWorkshop.hasProperContent());
-		unit.moveTo(new PositionVector(1,0,0));
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		unit.advanceTime(0.19);
-		assertEquals(false, testWorkshop.hasProperContent());
-	}
 
 }

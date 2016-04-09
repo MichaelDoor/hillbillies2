@@ -168,9 +168,9 @@ public class PositionVector {
 	
 	@Override
 	public int hashCode(){
-		int x = (int) (this.getXArgument()*1000);
-		int y = (int) (this.getYArgument()*1000);
-		int z = (int) (this.getZArgument()*1000);
+		int x = (int) ((this.getXArgument()*100)+1);
+		int y = (int) ((this.getYArgument()*100)+1);
+		int z = (int) ((this.getZArgument()*100)+1);
 		String code = x + "" + y + "" + z;
 		int hashCode = (int) Long.parseLong(code);
 		return hashCode;

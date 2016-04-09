@@ -333,6 +333,7 @@ public class Facade implements IFacade {
 	@Override
 	public void addUnit(Unit unit, World world) throws ModelException {
 		try{
+			unit.changeWorld(world);
 			world.addUnit(unit);
 		}
 		catch (IllegalArgumentException exc){

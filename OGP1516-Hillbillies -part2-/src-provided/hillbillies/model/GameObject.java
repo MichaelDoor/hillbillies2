@@ -3,7 +3,6 @@ package hillbillies.model;
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
-import ogp.framework.util.Util;
 import hillbillies.model.PositionVector;
 import hillbillies.model.World;
 
@@ -24,8 +23,13 @@ public abstract class GameObject {
 	/**
 	 * Create a new game object with a given position.
 	 * @param position	The given position.
-	 * @effect 	The world of this new game object is set to null.
+	 * @effect 	The world of this new game object is set to null, its unit position to the given position, its activity status to
+	 * 			default, its next position to its unit position and its velocity to the zero vector.
+	 * 			| this.setUnitPosition(position)
 	 *       	| this.setWorld(null)
+	 *       	| this.setActivityStatus("default")
+	 *       	| this.setNextPosition(this.getUnitPosition())
+	 *       	| this.setCurrentVelocity(new PositionVector(0,0,0))
 	 * @throws	IllegalArgumentException
 	 * 			The given position is not a valid position.
 	 * @throws	NullPointerException
@@ -34,6 +38,9 @@ public abstract class GameObject {
 	public GameObject(PositionVector position) throws IllegalArgumentException, NullPointerException {
 		this.setUnitPosition(position);
 		this.setWorld(null);
+		this.setActivityStatus("default");
+		this.setNextPosition(this.getUnitPosition());
+		this.setCurrentVelocity(new PositionVector(0,0,0));
 	}
 	
 	/**
@@ -50,23 +57,31 @@ public abstract class GameObject {
 	 *  
 	 * @param  unitPosition
 	 *         The unitPosition to check.
-	 * @return True if and only if the components of the given position are equal to or greater than 0.
-	 *       | result == (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-	 *       |				&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-	 *       |					&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0)
+	 * @return True if and only if this game object has no world or all components of the given position are positive and not greater
+	 * 			than this game objects world's number of cubes in the respective component direction.
+	 *       | result == (this.getWorld() == null) ||
+	 *       | 		(((int) position.getXArgument() < 0) || ((int) position.getYArgument() < 0) 
+	 *       | 		|| ((int) position.getZArgument() < 0) || ((int) position.getXArgument() > this.getWorld().getNbCubesX()) 
+	 *       | 			|| ((int) position.getYArgument() > this.getWorld().getNbCubesY())
+	 *		 |				|| ((int) position.getZArgument() > this.getWorld().getNbCubesZ()))
 	 * @throws	NullPointerException
 	 * 			The position is not effective.
 	 * 			| position == null
 	*/
 	protected boolean isValidUnitPosition(PositionVector position) throws NullPointerException {
-//		int maxX = this.getWorld().getNbCubesX();
-//		int maxY = this.getWorld().getNbCubesY();
-//		int maxZ = this.getWorld().getNbCubesZ();
-		return (Util.fuzzyGreaterThanOrEqualTo(position.getXArgument(),0) 
-					&& Util.fuzzyGreaterThanOrEqualTo(position.getYArgument(),0) 
-						&& Util.fuzzyGreaterThanOrEqualTo(position.getZArgument(),0));
-//				      		&& (position.getXArgument() < maxX) && (position.getYArgument() < maxY) 
-//				      		&& (position.getZArgument() < maxZ));
+		if(position == null)
+			throw new NullPointerException();
+		if(this.getWorld() == null)
+			return true;
+		else{
+			int x = (int) position.getXArgument();
+			int y = (int) position.getYArgument();
+			int z = (int) position.getZArgument();
+			if((x < 0) || (y < 0) || (z < 0) || (x > this.getWorld().getNbCubesX()) || (y > this.getWorld().getNbCubesY())
+					|| (z > this.getWorld().getNbCubesZ()))
+				return false;
+			return true;
+		}
 	}
 	
 	/**
@@ -165,14 +180,14 @@ public abstract class GameObject {
 	 * @param  world
 	 *         The world to check.
 	 * @return 
-	 *       | result == (world == null) || (world.isValidStandingPosition(new PositionVector(x,y,z)))
+	 *       | result == (world == null) || (world.isValidPosition(new PositionVector(x,y,z)))
 	*/
 	protected boolean isValidWorld(World world) {
 		int[] position = this.getCubePosition();
 		int x = position[0];
 		int y = position[1];
 		int z = position[2];
-		return ((world == null) || (world.isValidStandingPosition(new PositionVector(x,y,z))));
+		return ((world == null) || (world.isValidPosition(new PositionVector(x,y,z))));
 	}
 	
 	/**
@@ -277,7 +292,7 @@ public abstract class GameObject {
 	 * Check whether a given position is located in an adjacent cube of the position of this game object.
 	 * @param position	The position to check.
 	 * @return	True if and only if the given position is in an adjacent cube of this game object's position 
-	 * 			and is a valid unit position.
+	 * 			and the sum of the given position and this game object's unit position is a valid unit position..
 	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
 	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
 	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
@@ -287,10 +302,10 @@ public abstract class GameObject {
 	 *			|			&& (((Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1) 
 	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
 	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1))
-	 *			|				&& (this.isValidUnitPosition(position)))))
+	 *			|				&& (this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))))
 	 */
 	public boolean isValidAdjacent(PositionVector position) {
-		if(! this.isValidUnitPosition(position))
+		if(! this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))
 			return false;
 		int positionX = (int) position.getXArgument();
 		int positionY = (int) position.getYArgument();

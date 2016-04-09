@@ -3010,12 +3010,13 @@ public class Unit extends GameObject {
 	 * @param  work position
 	 *         The work position to check.
 	 * @return True if and only if the given work position is null or a valid adjacent position for this unit.
-	 *       | result == ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), 
-	 *       | 																								workPosition)))
+	 *       | result == ((workPosition == null) 
+	 *       | 		|| (this.isValidAdjacent(PositionVector.calcDifferenceVector(
+	 *       |			PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition)))))
 	*/
 	public boolean isValidWorkPosition(PositionVector workPosition) {
-		return ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(),
-				workPosition))));
+		return ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(
+				PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition)))));
 	}
 	
 	/**
