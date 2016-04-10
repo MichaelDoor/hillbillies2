@@ -69,7 +69,7 @@ public class Facade implements IFacade {
 
 	@Override
 	public int getWeight(Unit unit) throws ModelException {
-		return unit.getWeight();
+		return unit.getEffectiveWeight();
 	}
 
 	@Override

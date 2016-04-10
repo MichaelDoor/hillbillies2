@@ -7,6 +7,7 @@ import cube.*;
 import faction.Faction;
 import hillbillies.part2.listener.*;
 import objects.*;
+import ogp.framework.util.Util;
 import position.PositionVector;
 import hillbillies.util.*;
 
@@ -53,23 +54,21 @@ public class World {
 	 * @effect	The cube matrix of this world is initialized.
 	 * @effect	Initializes this world's connected to border checker.
 	 * @effect	This world's terrain is made valid.
-	 * @effect The number of units of this new world is set to 0.
 	 * @effect The unit set of this new world is set to an empty hash set.
 	 * @effect The material set of this new world is set to an empty hash set.
 	 * @effect The faction set of this new world is set to a new hash set.
 	 */
 	public World(int[][][] terrainTypes, TerrainChangeListener modelListener)
 			throws NullPointerException {
+		this.setUnitSet(new HashSet<Unit>());
+		this.setMaterialSet(new HashSet<Material>());
+		this.setFactionSet(new HashSet<>());
 		this.setTerrainMatrix(terrainTypes);
 		this.modelListener = modelListener;
 		this.initializeCubeMatrix();
 		this.connectedToBorder = new ConnectedToBorder(this.getNbCubesX(), this.getNbCubesY(), this.getNbCubesZ());
 		this.initializeConnectedToBorder();
 		this.makeValidTerrain();
-		this.setNumberOfUnits(0);
-		this.setUnitSet(new HashSet<Unit>());
-		this.setMaterialSet(new HashSet<Material>());
-		this.setFactionSet(new HashSet<>());
 	}
 	
 	
@@ -367,7 +366,7 @@ public class World {
 				while(z < this.getNbCubesZ()){
 					if(cubeMatrix[x][y][z].isSolid())
 						if(! this.connectedToBorder.isSolidConnectedToBorder(x, y, z))
-							this.caveIn(x,y,z);
+							this.singleCaveIn(x,y,z);
 					z++;
 				}
 				y++;
@@ -394,10 +393,18 @@ public class World {
 		int terrain = this.getCubeType(x,y,z);
 		this.caveIn(x, y, z);
 		Cube newCube = this.getCube(x, y, z);
-		if((terrain == 1) &&(! newCube.containsBoulder()))
-			newCube.addAsContent(new Boulder(PositionVector.centrePosition(new PositionVector(x, y, z))));
-		if((terrain == 2) &&(! newCube.containsLog()))
-			newCube.addAsContent(new Log(PositionVector.centrePosition(new PositionVector(x, y, z))));	
+		if((terrain == 1) &&(! newCube.containsBoulder())){
+			Boulder boulder = new Boulder(PositionVector.centrePosition(new PositionVector(x, y, z)));
+			boulder.changeWorld(this);
+			newCube.addAsContent(boulder);
+			this.addMaterial(boulder);
+		}
+		if((terrain == 2) &&(! newCube.containsLog())){
+			Log log = new Log(PositionVector.centrePosition(new PositionVector(x, y, z)));
+			log.changeWorld(this);
+			newCube.addAsContent(log);	
+			this.addMaterial(log);
+		}
 	}
 	
 	/**
@@ -425,9 +432,11 @@ public class World {
 		cube = new Air(position, content);
 		if (caveInItemCheck() == true){
 			Material item = this.caveInItem(position, terrainType);
+			item.changeWorld(this);
 			cube.addAsContent(item);
 			this.addMaterial(item);
 		}
+		this.getConnectedToBorder().changeSolidToPassable(x, y, z);
 		this.replaceCube(cube);
 		List<int[]> others = this.connectedToBorder.changeSolidToPassable(x, y, z);
 		this.propagateCaveIn(others);
@@ -447,6 +456,35 @@ public class World {
 	}
 	
 	/**
+	 * Makes the cube at the given position cave-in.
+	 * @param x	The x coordinate of the targeted cube.
+	 * @param y	The y coordinate of the targeted cube.
+	 * @param z	The z coordinate of the targeted cube.
+	 * @effect	Creates a new air cube, injects the content of the old cube into it and adds the item that spawns by the cave-in
+	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube.
+	 * @throws	IllegalStateException
+	 * 			The targeted cube is passable.
+	 * @throws	IllegalArgumentException
+	 * 			The given position is out of bounds.
+	 */
+	public void singleCaveIn(int x, int y, int z) throws IllegalStateException, IllegalArgumentException {
+		PositionVector position = new PositionVector(x, y, z);
+		Cube cube = this.getCube(x,y,z);
+		if(! cube.isSolid())
+			throw new IllegalStateException("This cube is passable and thus cannot cave-in!");
+		HashSet<GameObject> content = cube.getContent();
+		int terrainType = cube.getTerrainType();
+		cube = new Air(position, content);
+		if (caveInItemCheck() == true){
+			Material item = this.caveInItem(position, terrainType);
+			cube.addAsContent(item);
+			this.addMaterial(item);
+		}
+		this.getConnectedToBorder().changeSolidToPassable(x, y, z);
+		this.replaceCube(cube);
+	}
+	
+	/**
 	 * Return an item with a given position, the kind of item depends on the given terrain type.
 	 * @param position	The given position.
 	 * @param terrainType	The given terrain type.
@@ -460,9 +498,9 @@ public class World {
 	@Model @Raw
 	private Material caveInItem(PositionVector position, int terrainType) throws IllegalArgumentException, NullPointerException {
 		if(terrainType == 1)
-			return new Boulder(position);
+			return new Boulder(PositionVector.centrePosition(position));
 		if(terrainType == 2)
-			return new Log(position);
+			return new Log(PositionVector.centrePosition(position));
 		else
 			throw new IllegalArgumentException("This terrain type doesn't spawn anything, when it collapses!");
 	}
@@ -531,53 +569,6 @@ public class World {
 		}
 		return directAdjacents;
 	}
-	
-	/**
-	 * Return the number of units of this world.
-	 */
-	@Basic @Raw
-	public int getNumberOfUnits() {
-		return this.numberOfUnits;
-	}
-	
-	/**
-	 * Check whether the given number of units is a valid number of units for
-	 * any world.
-	 *  
-	 * @param  number of units
-	 *         The number of units to check.
-	 * @return 
-	 *       | result == ((numberOfUnits <= maxNumberOfUnits) && (numberOfUnits >= 0))
-	*/
-	public static boolean isValidNumberOfUnits(int numberOfUnits) {
-		return ((numberOfUnits <= maxNumberOfUnits) && (numberOfUnits >= 0));
-	}
-	
-	/**
-	 * Set the number of units of this world to the given number of units.
-	 * 
-	 * @param  numberOfUnits
-	 *         The new number of units for this world.
-	 * @post   The number of units of this new world is equal to
-	 *         the given number of units.
-	 *       | new.getNumberOfUnits() == numberOfUnits
-	 * @throws IllegalArgumentException
-	 *         The given number of units is not a valid number of units for any
-	 *         world.
-	 *       | ! isValidNumberOfUnits(getNumberOfUnits())
-	 */
-	@Raw
-	public void setNumberOfUnits(int numberOfUnits) 
-			throws IllegalArgumentException {
-		if (! isValidNumberOfUnits(numberOfUnits))
-			throw new IllegalArgumentException();
-		this.numberOfUnits = numberOfUnits;
-	}
-	
-	/**
-	 * Variable registering the number of units of this world.
-	 */
-	private int numberOfUnits;
 	
 	/**
 	 * Variable registering the maximum number of units allowed in any world.
@@ -719,14 +710,15 @@ public class World {
 	 * @param enableDefaultBehaviour	The status of the default behaviour of the to be spawned unit.
 	 * @result	A random center cube position is generated, a name according to the number units in this world is generated.
 	 * 			A unit with this generated name and position and with random attribute values is initialized and added to this world
-	 * 			and is returned.
+	 * 			and the unit's world is changed to this world. The unit is returned.
 	 */
 	public Unit spawnUnit(boolean enableDefaultBehaviour) {
-		PositionVector position = PositionVector.centrePosition(this.randomStandingPosition());
+		PositionVector position = PositionVector.centrePosition(this.randomSpawnPosition());
 		String name = "Unit";
 		Unit unit = new Unit(position, name, this.autoFaction());
 		if(enableDefaultBehaviour == true)
 			unit.startDefaultBehaviour();
+		unit.changeWorld(this);
 		this.addUnit(unit);
 		return unit;
 	}
@@ -756,6 +748,20 @@ public class World {
 	}
 	
 	/**
+	 * Return a suitable spawn position for a unit.
+	 * @return	A position that is not solid, that is either at z = 1 or has a solid cube underneath.
+	 */
+	public PositionVector randomSpawnPosition(){
+		PositionVector position = this.randomPosition();
+		while(!(!this.isSolidPosition(position) 
+				&& ((((int) position.getZArgument() == 1) || ((int) position.getZArgument() == 0)) 
+						|| this.isSolidPosition(new PositionVector(position.getXArgument(),position.getYArgument(),position.getZArgument()-1))))){
+			position = this.randomPosition();
+		}
+		return position;
+	}
+	
+	/**
 	 * Check whether a game object could stand at the given position.
 	 * @param position	The given position.
 	 * @return	True, if and only if the cube at the given position is passable and either the adjacent cube underneath it is solid
@@ -771,7 +777,7 @@ public class World {
 		Cube cube = this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
 		if(cube.isSolid())
 			return false;
-		if(position.getZArgument() == 0)
+		if((int) position.getZArgument() == 0)
 			return true;
 		if(this.hasSolidAdjacent(cube))
 			return true;
@@ -922,15 +928,22 @@ public class World {
 	 * @param dt	The given amount of time.
 	 * @effect	Time is advanced with the given amount of time for all units and and materials of this world.
 	 * @throws	IllegalArgumentException
-	 * 			Time is either negative or equal to or greater then 0.2s.
+	 * 			Time is negative.
 	 */
 	public void advanceTime(double dt)throws IllegalArgumentException {
-		if ((dt < 0) || (dt >= 0.2)) 
+		if (dt < 0) 
 			throw new IllegalArgumentException();
-		for(Unit unit : this.getUnitSet())
-			unit.advanceTime(dt);
-		for(Material material : this.getMaterialSet())
-			material.advanceTime(dt);
+		double time = dt;
+		while(time > 0){
+			double t = time;
+			if(Util.fuzzyGreaterThanOrEqualTo(t, 0.2))
+				t = 0.19;
+			for(Unit unit : this.getUnitSet())
+				unit.advanceTime(t);
+			for(Material material : this.getMaterialSet())
+				material.advanceTime(t);
+			time = time - t;
+		}
 	}
 	
 	/**
@@ -1062,11 +1075,11 @@ public class World {
 	
 	/**
 	 * Return an automatically chosen faction for a unit.
-	 * @return	A new faction if this world has not yet reached its maximum amount of allowed factions, or the faction with the least
+	 * @return	A new faction if this world has not yet reached its maximum amount of allowed active factions, or the faction with the least
 	 * 			amount of units, when this world has already reached its maximum amount of factions.
 	 */
 	private Faction autoFaction() throws IllegalStateException{
-		if(this.getFactionSet().size() < maxNbOfActiveFactions)
+		if(this.getActiveFactions().size() < maxNbOfActiveFactions)
 			return new Faction();
 		else{
 			Faction smallestFaction = null;
@@ -1322,12 +1335,13 @@ public class World {
 		if(! this.isValidPosition(position))
 			throw new IllegalArgumentException("The given position is not a valid position!");
 		Set<PositionVector> allAdjacents = this.getAllAdjacentPositions(position);
+		Set<PositionVector> standingAdjacents = new HashSet<PositionVector>();
 		for(PositionVector adjacent : allAdjacents){
-			if(! this.isValidStandingPosition(adjacent)){
-				allAdjacents.remove(adjacent);
+			if(this.isValidStandingPosition(adjacent)){
+				standingAdjacents.add(adjacent);
 			}
 		}
-		return allAdjacents;
+		return standingAdjacents;
 	}
 	
 	/**

@@ -206,9 +206,14 @@ public abstract class GameObject {
 	@Raw
 	private void setWorld(World world) 
 			throws NullPointerException, IllegalArgumentException {
-		if (! isValidWorld(world))
-			throw new IllegalArgumentException();
-		this.world = world;
+		try{
+			if (! isValidWorld(world))
+				throw new IllegalArgumentException();
+			this.world = world;
+		}
+		catch (IllegalArgumentException exc){
+			
+		}
 	}
 	
 	/**
@@ -305,7 +310,7 @@ public abstract class GameObject {
 	 *			|				&& (this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))))
 	 */
 	public boolean isValidAdjacent(PositionVector position) {
-		if(! this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))
+		if(! this.isValidUnitPosition(position))
 			return false;
 		int positionX = (int) position.getXArgument();
 		int positionY = (int) position.getYArgument();

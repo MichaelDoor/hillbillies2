@@ -5,6 +5,7 @@ import position.PositionVector;
 import world.World;
 import be.kuleuven.cs.som.annotate.*;
 import faction.Faction;
+import ogp.framework.util.Util;
 
 /**
  * @invar  The name of each unit must be a valid name for any
@@ -871,14 +872,15 @@ public class Unit extends GameObject {
 	@Override
 	public void advanceTime(double time) 
 								throws IllegalArgumentException {
-		if ((time < 0) || (time >= 0.2)) {
+		if ((time < 0) || (Util.fuzzyGreaterThanOrEqualTo(time, 0.2))) {
 			throw new IllegalArgumentException();
 		}
 		String status = this.getActivityStatus();
+		if((this.getUnitPosition().equals(this.getNextPosition()) && (this.getUnitPosition().equals(this.getDestination()))))
+			this.getQueue().clear();
 		if(status.equals("fall"))
 			//Unit fell 1 cube
 			if((this.getUnitPosition().equals(this.getNextPosition())) && (this.getUnitPosition().equals(this.getDestination()))){
-				this.decreaseHP(10);
 				if(this.fallCheck()){
 					this.fall();
 					this.advanceTime(time);
@@ -892,7 +894,7 @@ public class Unit extends GameObject {
 			else{
 				this.miniMove(time, 1);
 			}
-		else if(this.fallCheck()){
+		else if((this.fallCheck()) && (! status.equals("move"))){
 				this.fall();
 				this.advanceTime(time);
 		}
@@ -979,7 +981,7 @@ public class Unit extends GameObject {
 				PositionVector position = subQueue.get(i);
 				this.searchPath(position, i, subQueue);
 			}
-			if(path.containsKey(this.getCubePosition())){
+			if(path.containsKey(cubePosition)){
 				Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(cubePosition);
 				PositionVector best = cubePosition;
 				int distance = path.get(best);
@@ -989,12 +991,15 @@ public class Unit extends GameObject {
 						best = adjacent;
 					}
 				}
-				this.moveToAdjacent(PositionVector.calcDifferenceVector(cubePosition, best));	
+				this.moveToAdjacent(PositionVector.calcDifferenceVector(best,cubePosition));	
 			}
-			else
+			else {
 				path.clear();
+				this.setDestination(this.getUnitPosition());
+			}
 		}
-		path.clear();
+		else
+			path.clear();
 	}
 	
 	@Model
@@ -1088,29 +1093,54 @@ public class Unit extends GameObject {
 	 */
 	public void moveToAdjacent(PositionVector position) 
 			throws IllegalArgumentException, IllegalStateException, NullPointerException {
-		if(! position.equals(this.getUnitPosition())){
-			if((!isValidUnitPosition(PositionVector.sum(this.getUnitPosition(),position))) || 
-								(!isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position)))
-								|| (this.getWorld().isSolidPosition(PositionVector.sum(this.getUnitPosition(),position))
-										|| (! this.getWorld().isValidStandingPosition(PositionVector.sum(this.getUnitPosition(),
-												position))))) {
-				throw new IllegalArgumentException();
-			}
-			if((this.getActivityStatus() == "move") && (! this.getUnitPosition().equals(this.getNextPosition()))) {
-				throw new IllegalStateException();
-			}
-			if(this.getActivityStatus() != "move") {
-				this.setActivityStatus("move");
-				PositionVector destination = PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position));
-				PositionVector velocity = calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
-						destination, this.getUnitPosition());
-				this.setCurrentVelocity(velocity);
-				this.setNextPosition(destination);	
-			}
-			if(this.getUnitPosition().equals(this.getDestination())){
-				this.setDestination(this.getNextPosition());
+		try{
+			if(! position.equals(this.getUnitPosition())){
+				boolean flag1 = (!isValidUnitPosition(PositionVector.sum(this.getUnitPosition(),position)));
+				boolean flag2 = (!isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position)));
+				boolean flag3 = (this.getWorld().isSolidPosition(PositionVector.sum(this.getUnitPosition(),position)));
+//				boolean flag4 = (! this.getWorld().isValidStandingPosition(PositionVector.sum(this.getUnitPosition(),
+//						position)));
+				if(flag1 || flag2 || flag3)  {
+					throw new IllegalArgumentException();
+				}
+				if((Math.abs(position.getXArgument()) + Math.abs(position.getYArgument()) + Math.abs(position.getZArgument()) == 2) 
+						&& (this.isSolidCorner(position)))
+						throw new IllegalArgumentException();
+				if((this.getActivityStatus() == "move") && (! this.getUnitPosition().equals(this.getNextPosition()))) {
+					throw new IllegalStateException();
+				}
+				if(this.getActivityStatus() != "move") {
+					this.setActivityStatus("move");
+					PositionVector destination = PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position));
+					PositionVector velocity = calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
+							destination, this.getUnitPosition());
+					this.setCurrentVelocity(velocity);
+					this.setNextPosition(destination);	
+				}
+				if(this.getUnitPosition().equals(this.getDestination())){
+					this.setDestination(this.getNextPosition());
+				}
 			}
 		}
+		catch(IllegalArgumentException exc){
+			
+		}
+	}
+	
+	public boolean isSolidCorner(PositionVector adjacentPosition) throws NullPointerException, IllegalArgumentException {
+		if(! this.isValidAdjacent(adjacentPosition)
+				&& (Math.abs(position.getXArgument()) + Math.abs(position.getYArgument()) + Math.abs(position.getZArgument()) == 2))
+			throw new IllegalArgumentException();
+		PositionVector position1 = PositionVector.sum(this.getCubePositionVector(), 
+				new PositionVector(adjacentPosition.getXArgument(),0,0));
+		PositionVector position2 = PositionVector.sum(this.getCubePositionVector(), 
+				new PositionVector(0,adjacentPosition.getYArgument(),0));
+		PositionVector position3 = PositionVector.sum(this.getCubePositionVector(), 
+				new PositionVector(0,0,adjacentPosition.getZArgument()));
+		boolean flag1 = this.getWorld().isSolidPosition(position1);
+		boolean flag2 = this.getWorld().isSolidPosition(position2);
+		boolean flag3 = this.getWorld().isSolidPosition(position3);
+		return (flag1 || flag2 || flag3);
 	}
 	
 	
@@ -1402,6 +1432,8 @@ public class Unit extends GameObject {
 					this.getNextPosition().getZArgument()));
 			if(! this.getActivityStatus().equals("fall"))
 				this.gainExp(1);
+			if(this.getActivityStatus().equals("fall"))
+				this.decreaseHP(10);
 			this.setActivityStatus("default");
 			this.setCurrentVelocity(new PositionVector(0, 0, 0));
 			double restingTime = dt-travelTime;
@@ -1565,8 +1597,9 @@ public class Unit extends GameObject {
 		this.setActivityStatus("work");
 		this.setWorkPosition(PositionVector.centrePosition(targetPosition));
 		this.resetWorkTime();
-		PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getUnitPosition(), targetPosition);
-		this.setOrientation( Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
+		PositionVector differenceVector = PositionVector.calcDifferenceVector(PositionVector.centrePosition(targetPosition),
+				this.getUnitPosition());
+		this.setOrientation(Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
 	}
 	
 	/**
@@ -1655,6 +1688,7 @@ public class Unit extends GameObject {
 			this.pickUpMaterial(this.getWorld().getALog(this.getWorkPosition()));
 		else if((this.getWorld().isWood(this.getWorkPosition())) || (this.getWorld().isRock(this.getWorkPosition())))
 			this.getWorld().collapse(this.getWorkPosition());
+		this.gainExp(10);
 	}
 	
 	/**
@@ -1711,8 +1745,6 @@ public class Unit extends GameObject {
 						|| (this.getInventory().size() == inventoryCapacity))
 			throw new IllegalArgumentException();
 		this.addMaterialToInventory(material);
-		this.getWorld().removeMaterial(material);
-		
 	}
 	
 	/**
@@ -2450,10 +2482,10 @@ public class Unit extends GameObject {
 	 *			| 	action = generator.nextInt(3)
 	 *			| if (action == 0)
 	 *			| 	int sprint = generator.nextInt(2)
-	 *			|  	this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
+	 *			|  	this.moveTo(this.moveTo(this.getWorld().randomStandingPosition())
 	 *			|  	this.setSprint(sprint == 1)
 	 *			| if (action == 1)
-	 *			|  	this.work(this.randomAdjacent())
+	 *			|  	this.work(PositionVector.sum(this.randomAdjacent(),this.getCubePositionVector()));
 	 *			| if (action == 2) 
 	 *			|  	this.rest()
 	 *			| if (action == 3)
@@ -2468,11 +2500,11 @@ public class Unit extends GameObject {
 			action = generator.nextInt(3);
 		if (action == 0){
 			int sprint = generator.nextInt(2);
-			this.moveTo(new PositionVector(generator.nextDouble()*49.99, generator.nextDouble()*49.99, generator.nextDouble()*49.99));
+			this.moveTo(this.getWorld().randomStandingPosition());
 			this.setSprint(sprint == 1);
 		}
 		if (action == 1)
-			this.work(this.randomAdjacent());
+			this.work(PositionVector.sum(this.randomAdjacent(),this.getCubePositionVector()));
 		if (action == 2) 
 			this.rest();
 		if (action == 3)
@@ -2639,9 +2671,10 @@ public class Unit extends GameObject {
 	 */
 	private void gainExp(int exp){
 		int newExp = this.getExp() + exp;
-		while(newExp >= maxExp)
+		while(newExp >= maxExp){
 			newExp = newExp - maxExp;
 			this.levelUp();
+		}
 		this.setExp(newExp);
 	}
 	
@@ -2744,7 +2777,9 @@ public class Unit extends GameObject {
 	 * Check whether this unit should fall.
 	 * @return	True if and only if this unit does not occupy a cube at the bottom of it's world (z = 0), does not have 
 	 * 			a solid cube underneath the cube it's occupying and does not have any adjacent solid cube.
-	 * 			| result == (! this.getCubePosition()[2] == 0) && (! this.getWorld().isSolidPosition(this.getCubePositionVector()))
+	 * 			| result == (! this.getCubePosition()[2] == 0) 
+	 * 			| 	&& (! this.getWorld().isSolidPosition(new PositionVector(cubePositionVector.getXArgument(),
+	 *			|			cubePositionVector.getYArgument(),cubePositionVector.getZArgument()-1.0)))
 	 * 			|		&& (this.getWorld().hasSolidAdjacent(this.getWorld().getCube(this.getCubePosition()[0],
 	 * 			|														this.getCubePosition()[1],this.getCubePosition()[2])))
 	 */
@@ -2752,10 +2787,12 @@ public class Unit extends GameObject {
 	protected boolean fallCheck(){
 		if(this.getCubePosition()[2] == 0)
 			return false;
-		if(this.getWorld().isSolidPosition(this.getCubePositionVector()))
+		PositionVector cubePositionVector = this.getCubePositionVector();
+		if(this.getWorld().isSolidPosition(new PositionVector(cubePositionVector.getXArgument(),cubePositionVector.getYArgument(),
+				cubePositionVector.getZArgument()-1.0)))
 			return false;
 		int[] cubePosition = this.getCubePosition();
-		return this.getWorld().hasSolidAdjacent(this.getWorld().getCube(cubePosition[0],cubePosition[1],cubePosition[2]));
+		return (! this.getWorld().hasSolidAdjacent(this.getWorld().getCube(cubePosition[0],cubePosition[1],cubePosition[2])));
 	}
 	
 	/**
@@ -2798,14 +2835,14 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Check whether this unit is terminated.
-	 * @return	True is and only if this unit no longer belongs to it's world, nor faction and it's activity status, velocity
+	 * @return	True is and only if this unit no longer has a world, nor faction and it's activity status, velocity
 	 * 			destination, faction, name, next position and world equal null.
-	 * 			| (this.getFaction().hasAsUnit(this)) && (this.getWorld().hasAsUnit(this))
+	 * 			| (this.world == null)
 	 * 			| && (this.activityStatus == null) && (this.currentVelocity == null) && (this.destination == null)
 	 * 			| && (this.faction == null) && (this.name == null) && (this.nextPosition == null) && (this.world == null)
 	 */
 	public boolean isTerminated(){
-		return ((this.getFaction().hasAsUnit(this)) && (this.getWorld().hasAsUnit(this)) && (this.activityStatus == null)
+		return ((this.world == null) && (this.activityStatus == null)
 				&& (this.destination == null) && (this.faction == null)
 				&& (this.name == null) && (super.isTerminated()));
 	}
@@ -2939,7 +2976,7 @@ public class Unit extends GameObject {
 			return false;
 		if(! material.getWorld().equals(this.getWorld()))
 			return false;
-		if(! this.isValidAdjacent(PositionVector.calcDifferenceVector(this.getCubePositionVector(), material.getCubePositionVector())))
+		if(! this.isValidAdjacent(material.getCubePositionVector()))
 			return false;
 		if(this.getInventory().size() == inventoryCapacity)
 			return false;
@@ -2963,8 +3000,6 @@ public class Unit extends GameObject {
 		if(! this.inInventory(material))
 			throw new IllegalArgumentException("The given material is not in this unit's inventory");
 		this.getInventory().remove(material);
-		material.setUnitPosition(this.getUnitPosition());
-		this.getWorld().addMaterial(material);
 	}
 	
 	/**
@@ -2977,8 +3012,9 @@ public class Unit extends GameObject {
 	 */
 	public void emptyInventory(PositionVector position){
 		for(Material material : this.getInventory()){
-			material.setUnitPosition(position);
+			material.setUnitPosition(PositionVector.centrePosition(position));
 			this.removeMaterial(material);
+			this.getWorld().addMaterial(material);
 		}
 	}
 	
@@ -3014,8 +3050,11 @@ public class Unit extends GameObject {
 	 *       |			PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition)))))
 	*/
 	public boolean isValidWorkPosition(PositionVector workPosition) {
-		return ((workPosition == null) || (this.isValidAdjacent(PositionVector.calcDifferenceVector(
-				PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition)))));
+		if(workPosition == null)
+			return true;
+		PositionVector distance = PositionVector.calcDifferenceVector(
+				PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition));
+		return (this.isValidAdjacent(PositionVector.sum(distance, this.getCubePositionVector())));
 	}
 	
 	/**
@@ -3258,10 +3297,13 @@ public class Unit extends GameObject {
 	 */
 	private Unit getRandomAdjacentEnemy() {
 		Random generator = new Random();
-		Unit[] adjacentEnemies = (Unit[]) this.getWorld().getAdjacentEnemies(this).toArray();
-		if(adjacentEnemies.length == 0)
+		ArrayList<Unit> adjacentEnemies = new ArrayList<Unit>();
+		Set<Unit> enemies = this.getWorld().getAdjacentEnemies(this);
+		if(enemies.size() == 0)
 			return null;
-		return adjacentEnemies[generator.nextInt(adjacentEnemies.length)];
+		for(Unit enemy : enemies)
+			adjacentEnemies.add(enemy);
+		return adjacentEnemies.get(generator.nextInt(adjacentEnemies.size()));
 	}
 	
 	/**

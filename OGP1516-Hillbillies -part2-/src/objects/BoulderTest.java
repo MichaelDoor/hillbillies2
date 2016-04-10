@@ -37,9 +37,5 @@ public class BoulderTest {
 		assertEquals(true, boulder.getWeight() >= 10);
 	}
 	
-	@Test (expected = IllegalArgumentException.class)
-	public void constructor_IllegalCase() throws IllegalArgumentException {
-		new Boulder(new PositionVector(1000,0,0));
-	}
 
 }

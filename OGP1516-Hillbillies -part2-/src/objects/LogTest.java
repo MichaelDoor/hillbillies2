@@ -36,10 +36,6 @@ public class LogTest {
 		assertEquals(true, log.getWeight() <= 50);
 		assertEquals(true, log.getWeight() >= 10);
 	}
-	
-	@Test (expected = IllegalArgumentException.class)
-	public void constructor_IllegalCase() throws IllegalArgumentException {
-		new Log(new PositionVector(1000,0,0));
-	}
+
 
 }
