@@ -970,11 +970,11 @@ public class Unit extends GameObject {
 			if(! path.containsKey(destination))
 				path.put(destination, 0);
 			int i = -1;
-			PositionVector cubePosition = new PositionVector(this.getCubePosition()[0], this.getCubePosition()[1],
-					this.getCubePosition()[2]);
+			PositionVector cubePosition = this.getCubePositionVector();
 			ArrayList<PositionVector> subQueue = new ArrayList<PositionVector>();
-			if(path.size() == 1)
+			if(path.size() == 1){
 				this.searchPath(destination, 0, subQueue);	
+			}
 			
 			while((! path.containsKey(cubePosition)) && (i < path.size()-1)){
 				i++;
@@ -987,10 +987,14 @@ public class Unit extends GameObject {
 				int distance = path.get(best);
 				for(PositionVector adjacent : adjacents){
 					if((path.get(adjacent) != null) && (path.get(adjacent) < distance)){
-						distance = path.get(adjacent);
 						best = adjacent;
+						distance = path.get(best);
 					}
 				}
+				adjacents.remove(best);
+				for(PositionVector adjacent : adjacents)
+					if(this.getQueue().containsKey(adjacent))
+						path.remove(adjacent);
 				this.moveToAdjacent(PositionVector.calcDifferenceVector(best,cubePosition));	
 			}
 			else {
@@ -1005,7 +1009,9 @@ public class Unit extends GameObject {
 	@Model
 	private void searchPath(PositionVector position, int n, ArrayList<PositionVector> subQueue){
 		for(PositionVector adjacent : this.getWorld().getAllAdjacentPositions(position)){
-			if((this.getWorld().isValidStandingPosition(adjacent)) && (! this.getQueue().containsKey(adjacent))){
+			if((this.getWorld().isValidStandingPosition(adjacent)) && (! this.getQueue().containsKey(adjacent))
+					&& (this.isSolidCorner(PositionVector.calcDifferenceVector(PositionVector.centrePosition(position), 
+							PositionVector.centrePosition(adjacent))))){
 				this.getQueue().put(adjacent, n+1);
 				subQueue.add(adjacent);
 			}
@@ -1123,6 +1129,9 @@ public class Unit extends GameObject {
 			}
 		}
 		catch(IllegalArgumentException exc){
+			
+		}
+		catch(IllegalStateException exc){
 			
 		}
 	}
@@ -1590,16 +1599,21 @@ public class Unit extends GameObject {
 	 */
 	@Raw
 	public void work(PositionVector targetPosition) throws IllegalArgumentException, IllegalStateException {
-		if(! this.isValidAdjacent(targetPosition))
-			throw new IllegalArgumentException("Target cube is not an adjacent!");
-		if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))	
-				throw new IllegalStateException();
-		this.setActivityStatus("work");
-		this.setWorkPosition(PositionVector.centrePosition(targetPosition));
-		this.resetWorkTime();
-		PositionVector differenceVector = PositionVector.calcDifferenceVector(PositionVector.centrePosition(targetPosition),
-				this.getUnitPosition());
-		this.setOrientation(Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
+		try{
+			if(! this.isValidAdjacent(targetPosition))
+				throw new IllegalArgumentException("Target cube is not an adjacent!");
+			if((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))	
+					throw new IllegalStateException();
+			this.setActivityStatus("work");
+			this.setWorkPosition(PositionVector.centrePosition(targetPosition));
+			this.resetWorkTime();
+			PositionVector differenceVector = PositionVector.calcDifferenceVector(PositionVector.centrePosition(targetPosition),
+					this.getUnitPosition());
+			this.setOrientation(Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
+		}
+		catch (IllegalArgumentException exc){
+			
+		}
 	}
 	
 	/**
@@ -3053,7 +3067,7 @@ public class Unit extends GameObject {
 		if(workPosition == null)
 			return true;
 		PositionVector distance = PositionVector.calcDifferenceVector(
-				PositionVector.centrePosition(this.getCubePositionVector()),PositionVector.centrePosition(workPosition));
+				PositionVector.centrePosition(workPosition),PositionVector.centrePosition(this.getCubePositionVector()));
 		return (this.isValidAdjacent(PositionVector.sum(distance, this.getCubePositionVector())));
 	}
 	

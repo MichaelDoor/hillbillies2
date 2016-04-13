@@ -306,7 +306,7 @@ public abstract class Cube {
 	 * 			This cube does not contain a log.
 	 */
 	public Log getALog() throws IllegalArgumentException {
-		if(! this.containsBoulder())
+		if(! this.containsLog())
 			throw new IllegalArgumentException("This cube does not contain a log!");
 		HashSet<GameObject> content = this.getContent();
 		Log log = null;

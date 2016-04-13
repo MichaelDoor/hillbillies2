@@ -137,7 +137,7 @@ public class PositionVector {
 	 * 			At least one of the given vectors is not effective.
 	 * 			| (position == null) || (target == null)
 	 */
-	public static PositionVector calcDifferenceVector(PositionVector position, PositionVector target) throws NullPointerException {
+	public static PositionVector calcDifferenceVector(PositionVector target, PositionVector position) throws NullPointerException {
 		return (new PositionVector (position.getXArgument()-target.getXArgument(), position.getYArgument()-target.getYArgument(), 
 				position.getZArgument()-target.getZArgument()));
 	}

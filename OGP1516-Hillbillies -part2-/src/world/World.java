@@ -1115,7 +1115,7 @@ public class World {
 	}
 	
 	/**
-	 * Return a set with all adjacent cube positions in this world of a given position in this world.
+	 * Return a set with all adjacent cube positions in this world of a given position in this world, the given position excluded.
 	 * @param position	The given position.
 	 * @return	A set with all the adjacent positions of the given position, that are valid positions of this world.
 	 * @throws	NullPointerException
@@ -1292,7 +1292,7 @@ public class World {
 		if(! this.isValidPosition(position))
 			throw new IllegalArgumentException("The given position is not a valid position for this world.");
 		Cube cube = this.getCube((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
-		return cube.containsBoulder();
+		return cube.containsLog();
 	}
 	
 	
