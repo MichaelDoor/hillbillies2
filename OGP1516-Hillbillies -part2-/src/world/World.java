@@ -1138,8 +1138,8 @@ public class World {
 				new PositionVector(x-1,y-1,z+1), new PositionVector(x+1,y-1,z-1), new PositionVector(x-1,y-1,z-1),
 				new PositionVector(x+1,y+1,z), new PositionVector(x-1,y-1,z), new PositionVector(x+1,y-1,z),
 				new PositionVector(x-1,y+1,z), new PositionVector(x+1,y,z+1), new PositionVector(x-1,y,z+1),
-				new PositionVector(x+1,y,z-1), new PositionVector(x-1,y,z-1), new PositionVector(x+1,y+1,z), 
-				new PositionVector(x-1,y+1,z), new PositionVector(x+1,y-1,z), new PositionVector(x-1,y-1,z)};
+				new PositionVector(x+1,y,z-1), new PositionVector(x-1,y,z-1), new PositionVector(x,y+1,z+1), 
+				new PositionVector(x,y+1,z-1), new PositionVector(x,y-1,z+1), new PositionVector(x,y-1,z-1)};
 		HashSet<PositionVector> validAdjacents = new HashSet<PositionVector>();
 		for(PositionVector adjacent : allPossibilities){
 			if(this.isValidPosition(adjacent))
@@ -1410,5 +1410,107 @@ public class World {
 		}
 		return result;
 	}
+
+
+	/**
+	 * Return the length of every cube.
+	 * @return	The cube length of the cube class.
+	 */
+	public int getCubeLength() {
+		return Cube.getSideLength();
+	}
 	
+	
+	/**
+	 * Check whether the straight line between the centers of the cubes of the given positions goes through a solid cube in this world.
+	 * @param position	The given position.
+	 * @param adjacent	The given adjacent position, being adjacent to the given position.
+	 * @return	True if and only if one of the cubes of the given positions is solid or a cube through which the path between the 2 
+	 * 			centers passes is solid.
+	 * @throws IllegalArgumentException
+	 * 			The given positions are not adjacent.
+	 */
+	public boolean hasSolidCornerInBetween(PositionVector position, PositionVector adjacent) throws IllegalArgumentException{
+		if(! this.areAdjacents(position,adjacent))
+			throw new IllegalArgumentException();
+		// one of the given positions is solid
+		if((this.isSolidPosition(position)) || (this.isSolidPosition(adjacent)))
+			return true;
+		PositionVector path = PositionVector.calcDifferenceVector(PositionVector.centrePosition(position), 
+				PositionVector.centrePosition(adjacent));
+		double x = path.getXArgument();
+		double y = path.getYArgument();
+		double z = path.getZArgument();
+		// they are direct adjacent, thus no corners
+		if(this.areDirectAdjacents(position,adjacent))
+			return false;
+		PositionVector[] inBetweenPositions = {new PositionVector(x,0,0),new PositionVector(0,y,0),new PositionVector(0,0,z),
+				new PositionVector(x,y,0),new PositionVector(x,0,z),new PositionVector(0,y,z)};
+		boolean flag = false;
+		for(PositionVector inBetweenPosition : inBetweenPositions){
+			PositionVector realPosition = PositionVector.sum(inBetweenPosition, position);
+			if((this.isValidPosition(realPosition)) && (this.isSolidPosition(realPosition))){
+				flag = true;
+			}
+		}
+		return flag;
+	}
+	
+	/**
+	 * Check whether 2 given positions refer to 2 adjacent cubes in this world.
+	 * @param position1	The first position that is given.
+	 * @param position2	The second position that is given.
+	 * @return	True if and only if all the absolute values of the components of the difference vector between the 
+	 * 			2 given positions are equal to or smaller than 1 and the 2 given positions don't refer to the same cube.
+	 * @throws IllegalArgumentException
+	 * 			The given positions are not valid positions for this world.
+	 */
+	public boolean areAdjacents(PositionVector position1, PositionVector position2) throws IllegalArgumentException {
+		if((! this.isValidPosition(position1)) || (! this.isValidPosition(position2)))
+			throw new IllegalArgumentException();
+		PositionVector temp1 = PositionVector.centrePosition(position1);
+		PositionVector temp2 = PositionVector.centrePosition(position2);
+		PositionVector differenceVector = PositionVector.calcDifferenceVector(temp1, temp2);
+		return((Math.abs(differenceVector.getXArgument()) <= 1.0) && (Math.abs(differenceVector.getYArgument()) <= 1.0)
+				&& (Math.abs(differenceVector.getZArgument()) <= 1.0) && (differenceVector.getXArgument() + 
+						Math.abs(differenceVector.getYArgument()) + Math.abs(differenceVector.getZArgument()) != 0.0));
+		
+	}
+	
+	/**
+	 * Check whether the cubes of 2 given positions are directly adjacent in this world.
+	 * @param position1	The first position that is given.
+	 * @param position2	The second position that is given.
+	 * @return	True if and only if the distance between the centers of the cubes of the given positions is 1 and the cubes 
+	 * 			are adjacent.
+	 */
+	public boolean areDirectAdjacents(PositionVector position1, PositionVector position2) throws IllegalArgumentException{
+		if(! this.areAdjacents(position1, position2))
+			return false;
+		PositionVector temp1 = PositionVector.centrePosition(position1);
+		PositionVector temp2 = PositionVector.centrePosition(position2);
+		PositionVector differenceVector = PositionVector.calcDifferenceVector(temp1, temp2);
+		return ((Math.abs(differenceVector.getXArgument() + differenceVector.getYArgument() + differenceVector.getZArgument())) == 1);
+	}
+	
+	
+	/**
+	 * Return a collection of all positions of adjacent that are reachable from the cube of the given standing position in this world.
+	 * @param standingPosition	The given standing position.
+	 * @return	A set with all adjacent standing positions that don't have a solid corner in between them and the given 
+	 * 			standing position.
+	 * @throws IllegalArgumentException
+	 * 			The given standing position is not a valid standing position in this world.
+	 */
+	public Set<PositionVector> getReachableAdjacents(PositionVector standingPosition) throws IllegalArgumentException{
+		if(! this.isValidStandingPosition(standingPosition))
+			throw new IllegalArgumentException();
+		Set<PositionVector> adjacentStandingPositions = this.getAdjacentStandingPositions(standingPosition);
+		Set<PositionVector> reachablePositions = new HashSet<PositionVector>();
+		for(PositionVector position : adjacentStandingPositions){
+			if(! this.hasSolidCornerInBetween(standingPosition, position))
+				reachablePositions.add(position);
+		}
+		return reachablePositions;
+	}
 }

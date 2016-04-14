@@ -243,8 +243,8 @@ public abstract class Cube {
 	 * Return the side length of any cube.
 	 * @return	The side length of any cube.
 	 */
-	@Basic @Raw
-	public int getSideLength() {
+	@Basic
+	public static int getSideLength() {
 		return sideLength;
 	}
 	

@@ -2,6 +2,7 @@ package world;
 
 import static org.junit.Assert.*;
 
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -256,7 +257,7 @@ public class WorldTest {
 				newUnitCubePosition[1], newUnitCubePosition[2]).getContent().contains(unit));
 	}
 	
-	@Test
+	@Test @Ignore
 	public void unitFalls(){
 		int nbX = 3;
 		int nbY = 3;
@@ -298,5 +299,93 @@ public class WorldTest {
 		assertEquals(true,unit.getCubePositionVector().equals(new PositionVector(2,1,1)));
 		assertEquals(true, unit.getActivityStatus().equals("default"));
 		assertEquals(true, unit.getCurrentHP() < unit.getMaxHP());
+	}
+	
+	@Test @Ignore
+	public void areAdjacents(){
+		PositionVector position1 = new PositionVector(0,0,0);
+		PositionVector position2 = new PositionVector(0,0,0);
+		assertEquals(false, testWorld.areAdjacents(position1, position2));
+		PositionVector position3 = new PositionVector(1,1,1);
+		assertEquals(true, testWorld.areAdjacents(position1, position3));
+		PositionVector position4 = new PositionVector(2,0,0);
+		assertEquals(false, testWorld.areAdjacents(position1, position4));
+	}
+	
+	@Test @Ignore
+	public void areDirectAdjacents(){
+		PositionVector position1 = new PositionVector(0,0,0);
+		PositionVector position2 = new PositionVector(0,0,0);
+		assertEquals(false, testWorld.areDirectAdjacents(position1, position2));
+		PositionVector position3 = new PositionVector(1,1,1);
+		assertEquals(false, testWorld.areDirectAdjacents(position1, position3));
+		PositionVector position4 = new PositionVector(1,0,0);
+		assertEquals(true, testWorld.areAdjacents(position1, position4));
+	}
+	
+	@Test @Ignore
+	public void hasSolidCornerInBetween(){
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 1;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 0; matrix[2][0][0] = 0;
+		matrix[0][1][0] = 0; matrix[1][1][0] = 1; matrix[2][1][0] = 0;
+		matrix[0][2][0] = 0; matrix[1][2][0] = 0; matrix[2][2][0] = 0;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position1 = new PositionVector(0,1,0);
+		PositionVector position2 = new PositionVector(1,0,0);
+		boolean flag = world2.hasSolidCornerInBetween(position1, position2);
+		assertEquals(true, flag);
+		PositionVector position3 = new PositionVector(1,2,0);
+		flag = world2.hasSolidCornerInBetween(position1, position3);
+		assertEquals(true, flag);
+		PositionVector position4 = new PositionVector(0,2,0);
+		flag = world2.hasSolidCornerInBetween(position1, position4);
+		assertEquals(false, flag);
+	}
+	
+	@Test
+	public void getReachableAdjacents() {
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 1;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 0; matrix[2][0][0] = 0;
+		matrix[0][1][0] = 0; matrix[1][1][0] = 1; matrix[2][1][0] = 0;
+		matrix[0][2][0] = 0; matrix[1][2][0] = 0; matrix[2][2][0] = 0;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position = new PositionVector(0,1,0);
+		Set<PositionVector> reachables = world2.getReachableAdjacents(position);
+		assertEquals(true,reachables.size() == 1);
+		assertEquals(true,reachables.contains(new PositionVector(0,2,0)));
+	}
+	
+	@Test
+	public void getReachableAdjacents_3D() {
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 3;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 1; matrix[2][0][0] = 1;
+		matrix[0][1][0] = 1; matrix[1][1][0] = 1; matrix[2][1][0] = 1;
+		matrix[0][2][0] = 0; matrix[1][2][0] = 1; matrix[2][2][0] = 1;
+		
+		matrix[0][0][1] = 0; matrix[1][0][1] = 1; matrix[2][0][1] = 1;
+		matrix[0][1][1] = 0; matrix[1][1][1] = 1; matrix[2][1][1] = 1;
+		matrix[0][2][1] = 0; matrix[1][2][1] = 1; matrix[2][2][1] = 1;
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 1; matrix[2][0][2] = 1;
+		matrix[0][1][2] = 0; matrix[1][1][2] = 0; matrix[2][1][2] = 1;
+		matrix[0][2][2] = 0; matrix[1][2][2] = 1; matrix[2][2][2] = 1;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position = new PositionVector(0,1,1);
+		Set<PositionVector> allAdjacents = world2.getAllAdjacentPositions(position);
+		assertEquals(true, (allAdjacents.size() == 17));
+		Set<PositionVector> reachables = world2.getReachableAdjacents(position);
+		int size = reachables.size();
+		assertEquals(true,size == 5);
+		assertEquals(false,reachables.contains(new PositionVector(0,2,0)));
+		assertEquals(false,reachables.contains(new PositionVector(1,1,2)));
 	}
 }

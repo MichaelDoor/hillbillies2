@@ -966,36 +966,39 @@ public class Unit extends GameObject {
 			throw new IllegalArgumentException();
 		this.setDestination(PositionVector.centrePosition(destination));
 		Map<PositionVector, Integer> path = this.getQueue();
+		PositionVector integerDestination = new PositionVector((int) destination.getXArgument(), (int) destination.getYArgument(),
+				(int) destination.getZArgument());
 		if(! this.getUnitPosition().equals(destination)){
-			if(! path.containsKey(destination))
-				path.put(destination, 0);
+			if(! path.containsKey(integerDestination))
+				path.put(integerDestination, 0);
 			int i = -1;
 			PositionVector cubePosition = this.getCubePositionVector();
 			ArrayList<PositionVector> subQueue = new ArrayList<PositionVector>();
 			if(path.size() == 1){
-				this.searchPath(destination, 0, subQueue);	
+				this.searchPath(integerDestination, 0, subQueue);	
 			}
 			
 			while((! path.containsKey(cubePosition)) && (i < path.size()-1)){
 				i++;
 				PositionVector position = subQueue.get(i);
-				this.searchPath(position, i, subQueue);
+				this.searchPath(position, i+1, subQueue);
 			}
 			if(path.containsKey(cubePosition)){
-				Set<PositionVector> adjacents = this.getWorld().getAllAdjacentPositions(cubePosition);
+				Set<PositionVector> adjacents = this.getWorld().getAdjacentStandingPositions(cubePosition);
 				PositionVector best = cubePosition;
 				int distance = path.get(best);
+				double accurateDistance = this.getWorld().getCubeLength()*2;
 				for(PositionVector adjacent : adjacents){
-					if((path.get(adjacent) != null) && (path.get(adjacent) < distance)){
+					if((path.containsKey(adjacent)) && (path.get(adjacent) < distance)
+							&& (PositionVector.calcDistance(PositionVector.centrePosition(cubePosition), 
+									PositionVector.centrePosition(adjacent)) < accurateDistance)){
 						best = adjacent;
 						distance = path.get(best);
+						accurateDistance = PositionVector.calcDistance(PositionVector.centrePosition(cubePosition), 
+								PositionVector.centrePosition(adjacent));
 					}
 				}
-				adjacents.remove(best);
-				for(PositionVector adjacent : adjacents)
-					if(this.getQueue().containsKey(adjacent))
-						path.remove(adjacent);
-				this.moveToAdjacent(PositionVector.calcDifferenceVector(best,cubePosition));	
+				this.moveToAdjacent(PositionVector.calcDifferenceVector(cubePosition,best));	
 			}
 			else {
 				path.clear();
@@ -1008,15 +1011,27 @@ public class Unit extends GameObject {
 	
 	@Model
 	private void searchPath(PositionVector position, int n, ArrayList<PositionVector> subQueue){
-		for(PositionVector adjacent : this.getWorld().getAllAdjacentPositions(position)){
-			if((this.getWorld().isValidStandingPosition(adjacent)) && (! this.getQueue().containsKey(adjacent))
-					&& (this.isSolidCorner(PositionVector.calcDifferenceVector(PositionVector.centrePosition(position), 
-							PositionVector.centrePosition(adjacent))))){
-				this.getQueue().put(adjacent, n+1);
-				subQueue.add(adjacent);
+		Set<PositionVector> allAdjacents = this.getWorld().getAdjacentStandingPositions(position);
+		for(PositionVector adjacent : allAdjacents){
+			if(this.getWorld().isValidStandingPosition(adjacent)){ 
+				if(! this.getQueue().containsKey(adjacent)){
+						if(! this.getWorld().hasSolidCornerInBetween(position, adjacent)){
+							this.getQueue().put(adjacent, n+1);
+							subQueue.add(adjacent);
+						}
+					}
+				else{
+					int distance = this.getQueue().get(adjacent);
+					if(distance > n+1){
+						this.getQueue().replace(adjacent, distance, n+1);
+						subQueue.add(adjacent);
+					}
+				}
 			}
 		}
 	}
+	
+	
 		
 	
 	/**
@@ -1109,9 +1124,8 @@ public class Unit extends GameObject {
 				if(flag1 || flag2 || flag3)  {
 					throw new IllegalArgumentException();
 				}
-				if((Math.abs(position.getXArgument()) + Math.abs(position.getYArgument()) + Math.abs(position.getZArgument()) == 2) 
-						&& (this.isSolidCorner(position)))
-						throw new IllegalArgumentException();
+				if(this.getWorld().hasSolidCornerInBetween(this.getUnitPosition(), PositionVector.sum(position, this.getUnitPosition())))
+					throw new IllegalArgumentException();
 				if((this.getActivityStatus() == "move") && (! this.getUnitPosition().equals(this.getNextPosition()))) {
 					throw new IllegalStateException();
 				}
@@ -1119,7 +1133,7 @@ public class Unit extends GameObject {
 					this.setActivityStatus("move");
 					PositionVector destination = PositionVector.centrePosition(PositionVector.sum(this.getUnitPosition(), position));
 					PositionVector velocity = calcVelocity(this.calcWalkingSpeed(PositionVector.sum(this.getUnitPosition(),position)),
-							destination, this.getUnitPosition());
+							this.getUnitPosition(),destination);
 					this.setCurrentVelocity(velocity);
 					this.setNextPosition(destination);	
 				}
@@ -1136,6 +1150,7 @@ public class Unit extends GameObject {
 		}
 	}
 	
+	@Deprecated
 	public boolean isSolidCorner(PositionVector adjacentPosition) throws NullPointerException, IllegalArgumentException {
 		if(! this.isValidAdjacent(adjacentPosition)
 				&& (Math.abs(position.getXArgument()) + Math.abs(position.getYArgument()) + Math.abs(position.getZArgument()) == 2))
@@ -1607,8 +1622,8 @@ public class Unit extends GameObject {
 			this.setActivityStatus("work");
 			this.setWorkPosition(PositionVector.centrePosition(targetPosition));
 			this.resetWorkTime();
-			PositionVector differenceVector = PositionVector.calcDifferenceVector(PositionVector.centrePosition(targetPosition),
-					this.getUnitPosition());
+			PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getUnitPosition(),
+					PositionVector.centrePosition(targetPosition));
 			this.setOrientation(Math.atan2(differenceVector.getYArgument(), differenceVector.getXArgument()));
 		}
 		catch (IllegalArgumentException exc){
