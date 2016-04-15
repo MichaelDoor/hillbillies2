@@ -8,11 +8,6 @@ import hillbillies.util.*;
 import ogp.framework.util.Util;
 
 
-
-
-
-
-
 /**
  * A class of worlds.
  * 
@@ -1478,7 +1473,7 @@ public class World {
 		PositionVector temp2 = PositionVector.centrePosition(position2);
 		PositionVector differenceVector = PositionVector.calcDifferenceVector(temp1, temp2);
 		return((Math.abs(differenceVector.getXArgument()) <= 1.0) && (Math.abs(differenceVector.getYArgument()) <= 1.0)
-				&& (Math.abs(differenceVector.getZArgument()) <= 1.0) && (differenceVector.getXArgument() + 
+				&& (Math.abs(differenceVector.getZArgument()) <= 1.0) && (Math.abs(differenceVector.getXArgument()) + 
 						Math.abs(differenceVector.getYArgument()) + Math.abs(differenceVector.getZArgument()) != 0.0));
 		
 	}
@@ -1517,5 +1512,124 @@ public class World {
 				reachablePositions.add(position);
 		}
 		return reachablePositions;
+	}
+	
+	/**
+	 * Returns a list of all positions of all cubes that make up the path from the given start position to the given destination
+	 * in this world (start and destination included), returns an empty set if the destination is not reachable from 
+	 * the given start position.
+	 * @param startPosition	The given start position.
+	 * @param destination	The given destination.
+	 * @return	The shortest walkable path (as a list) that is in the map of all the path possibilities.
+	 * @return	An empty list if the given destination can't be reached, starting from the given start position.
+	 * @throws IllegalArgumentException
+	 * 			The given start and/or destination are not valid standing positions in this world.
+	 * @throws	IllegalArgumentException
+	 * 			The given positions are the same.
+	 */
+	public List<PositionVector> determinePath(PositionVector startPosition, PositionVector destination) throws IllegalArgumentException{
+		if(startPosition.equals(destination))
+			throw new IllegalArgumentException();
+		PositionVector start = PositionVector.getIntegerPositionVector(startPosition);
+		PositionVector end = PositionVector.getIntegerPositionVector(destination);
+		Map<PositionVector,Integer> allPossibilities = this.getAllPathPossibilities(start, end);
+		List<PositionVector> path = new ArrayList<PositionVector>();
+		if(allPossibilities.isEmpty())
+			return path;
+		path.add(start);
+		allPossibilities.remove(start);
+		PositionVector i = start;
+		while(! i.equals(end)){
+			Set<PositionVector> reachables = this.getReachableAdjacents(i);
+			PositionVector best = null;
+			int distance = -1;
+			double accurateDistance = 0.0;
+			double distanceToDestination = 0.0;
+			for(PositionVector reachable: reachables){
+				if((allPossibilities.containsKey(reachable)) && ((allPossibilities.get(reachable) <= distance) || (distance == -1))){
+					if((allPossibilities.get(reachable) < distance) || (distance == -1)){
+						distance = allPossibilities.get(reachable);
+						accurateDistance = PositionVector.calcDistance(i, reachable);
+						distanceToDestination = PositionVector.calcDistance(reachable, end);
+						best = reachable;
+					}
+					else if((allPossibilities.get(reachable) == distance) && 
+							((PositionVector.calcDistance(i, reachable) < accurateDistance))){
+						accurateDistance = PositionVector.calcDistance(i, reachable);
+						distanceToDestination = PositionVector.calcDistance(reachable, end);
+						best = reachable;
+					}
+					else if((allPossibilities.get(reachable) == distance) && 
+							((PositionVector.calcDistance(i, reachable) == accurateDistance))
+							&& (PositionVector.calcDistance(reachable, end) <= distanceToDestination)){
+						distanceToDestination = PositionVector.calcDistance(reachable, end);
+						best = reachable;
+					}
+				}
+			}
+			path.add(best);
+			i = best;
+		}
+		return path;
+	}
+	
+	/**
+	 * Returned the reversed version of the given list of positions, last position first and first position last.
+	 * @param positionList	The given list of positions.
+	 * @return	A list having the positions of the given position list in reversed order.
+	 * @throws NullPointerException
+	 * 			The given list of positions is not effective.
+	 */
+	public static List<PositionVector> reversePositionList(List<PositionVector> positionList) throws NullPointerException{
+		List<PositionVector> reversedList = new ArrayList<PositionVector>();
+		int i = positionList.size() - 1;
+		while(i >= 0){
+			reversedList.add(positionList.get(i));
+			i--;
+		}
+		return reversedList;
+	}
+	
+	/**
+	 * Return a map, containing all possible positions of cubes on a path between a given start position and destination in this
+	 * world, map is empty if the destination can't be reached.
+	 * @param startPosition	The given start position.
+	 * @param destination	The given destination.
+	 * @return	A map containing all the positions of the cubes of the possible shortest paths, mapped with their distance from 
+	 * 			the destination and containing the destination itself.
+	 * @return	An empty map if the given destination is not reachable, when starting from the given start position.
+	 * @throws IllegalArgumentException
+	 * 			The given start and/or destination are not valid standing positions in this world.
+	 */
+	public Map<PositionVector,Integer> getAllPathPossibilities(PositionVector startPosition, PositionVector destination) 
+																							throws IllegalArgumentException{
+		if((! this.isValidStandingPosition(startPosition)) || (! this.isValidStandingPosition(destination)))
+			throw new IllegalArgumentException();
+		PositionVector start = PositionVector.getIntegerPositionVector(startPosition);
+		PositionVector end = PositionVector.getIntegerPositionVector(destination);
+		Map<PositionVector,Integer> possibilities = new HashMap<>();
+		possibilities.put(end, 0);
+		List<PositionVector> queue = new ArrayList<>();
+		queue.add(end);
+		int distance = 1;
+		while((! possibilities.containsKey(start)) && (! queue.isEmpty())){
+			Set<PositionVector> temp = new HashSet<>();
+			for(PositionVector position : queue){
+				Set<PositionVector> reachables = this.getReachableAdjacents(position);
+				for(PositionVector reachable : reachables){
+					if(! possibilities.containsKey(reachable))
+						temp.add(reachable);
+				}
+			}
+			queue.removeAll(queue);
+			for(PositionVector tempPosition : temp){
+				queue.add(tempPosition);
+				possibilities.put(tempPosition, distance);
+			}
+			distance++;
+		}
+		if(queue.isEmpty())
+			return new HashMap<PositionVector,Integer>();
+		return possibilities;
 	}
 }

@@ -155,7 +155,7 @@ public class PositionVector {
 	 * 			| (position == null) || (target == null)
 	 */
 	public static double calcDistance(PositionVector position, PositionVector target) throws NullPointerException {
-		PositionVector difference = PositionVector.calcDifferenceVector(position, target);
+		PositionVector difference = PositionVector.calcDifferenceVector(target, position);
 		double xDifference = difference.getXArgument();
 		double yDiffference = difference.getYArgument();
 		double zDifference = difference.getZArgument();
@@ -192,5 +192,16 @@ public class PositionVector {
 		double y = Math.floor(position.getYArgument()) + (1.0/2.0);
 		double z = Math.floor(position.getZArgument()) + (1.0/2.0);
 		return (new PositionVector(x,y,z));
+	}
+	
+	/**
+	 * Return a position vector with the integer form of the components of the given position as its components.
+	 * @param position	The given position.
+	 * @return	A position vector with the integer form of the components of the given position as its components.
+	 * @throws NullPointerException
+	 * 			The given position is not effective.
+	 */
+	public static PositionVector getIntegerPositionVector(PositionVector position) throws NullPointerException{
+		return new PositionVector((int) position.getXArgument(), (int) position.getYArgument(), (int) position.getZArgument());
 	}
 }

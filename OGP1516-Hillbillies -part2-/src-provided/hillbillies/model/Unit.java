@@ -166,7 +166,7 @@ public class Unit extends GameObject {
 	 * @effect 	The work position of this new unit is set to null.
 	 *       	| this.setWorkPosition(null)
 	 * @effect 	The defend attempts map of this new unit is set to an empty map.
-	 *       	| this.setDefendAttempts(new HashMap<Unit,Boolean>())
+	 *       	| this.setDefendAttempts(new ArrayList<PositionVector>())
 	 * @effect 	The target of this new unit is set to null.
 	 *       	| this.setTarget(null)
 	 * @throws  IllegalArgumentException
@@ -207,7 +207,7 @@ public class Unit extends GameObject {
 		this.setFaction(faction);
 		faction.addUnit(this);
 		this.setExp(0);
-		this.setQueue(new HashMap<PositionVector, Integer>());
+		this.setQueue(new ArrayList<PositionVector>());
 		this.setInventory(new HashSet<Material>());
 		this.setWorkPosition(null);
 		this.setDefendAttempts(new HashMap<Unit,Boolean>());
@@ -951,84 +951,46 @@ public class Unit extends GameObject {
 		}
 	}
 	
-	// algorithm was given, so no documentation
 	/**
-	 * Gives this unit a given destination and determines which adjacent cube he has to move to start it's journey.
+	 * Let this unit move to a given position.
 	 * @param destination	The given destination.
-	 * @throws	IllegalArgumentException
-	 * 			The given destination is not a valid position for this unit in its world.
-	 * 			| ! this.getWorld().isValidStandingPosition(destination)
-	 * @throws	NullPointerException
-	 * 			The destination is not effective.
+	 * @effect	If this unit changed course or wasn't moving yet, the path to the given destination is determined and set as this
+	 * 			unit's path. The difference vector between this unit's current position (also the first element in its path) and
+	 * 			the next element in its path is calculated. The first element of its path is removed from its path. This unit
+	 * 			moves to the adjacent cube that is located at the difference vector.
+	 * 			| if((this.getQueue().isEmpty()) || (! this.getQueue().contains(PositionVector.getIntegerPositionVector(destination))))
+	 * 			| 		this.setQueue(this.getWorld().determinePath(this.getUnitPosition(), destination))
+	 * 			| 		this.setDestination(PositionVector.centrePosition(destination))
+	 * 			| PositionVector position = this.getQueue().get(0)
+	 * 			| this.getQueue().remove(0)
+	 * 			| PositionVector differenceVector = PositionVector.calcDifferenceVector(position, this.getQueue().get(0))
+	 * 			| this.moveToAdjacent(differenceVector)
+	 * @throws IllegalArgumentException
+	 * 			The given destination is not a valid unit position or is this unit's current position.
+	 * 			| (! this.isValidUnitPosition(destination)) 
+	 * 			| 	|| (this.getCubePositionVector().equals(PositionVector.getIntegerPositionVector(destination)))
+	 * @throws NullPointerException
+	 * 			The given destination is not effective.
 	 * 			| destination == null
 	 */
-	public void moveTo(PositionVector destination) throws IllegalArgumentException, NullPointerException {
-		if(! this.getWorld().isValidStandingPosition(destination))
-			throw new IllegalArgumentException();
-		this.setDestination(PositionVector.centrePosition(destination));
-		Map<PositionVector, Integer> path = this.getQueue();
-		PositionVector integerDestination = new PositionVector((int) destination.getXArgument(), (int) destination.getYArgument(),
-				(int) destination.getZArgument());
-		if(! this.getUnitPosition().equals(destination)){
-			if(! path.containsKey(integerDestination))
-				path.put(integerDestination, 0);
-			int i = -1;
-			PositionVector cubePosition = this.getCubePositionVector();
-			ArrayList<PositionVector> subQueue = new ArrayList<PositionVector>();
-			if(path.size() == 1){
-				this.searchPath(integerDestination, 0, subQueue);	
+	public void moveTo(PositionVector destination) throws IllegalArgumentException, NullPointerException{
+		try{
+			if((! this.isValidUnitPosition(destination)) 
+					|| (this.getCubePositionVector().equals(PositionVector.getIntegerPositionVector(destination))))
+				throw new IllegalArgumentException();
+			//unit starts moving or changed destination
+			if((this.getQueue().isEmpty()) || (! this.getQueue().contains(PositionVector.getIntegerPositionVector(destination)))){
+					this.setQueue(this.getWorld().determinePath(this.getUnitPosition(), destination));
+					this.setDestination(PositionVector.centrePosition(destination));
 			}
-			
-			while((! path.containsKey(cubePosition)) && (i < path.size()-1)){
-				i++;
-				PositionVector position = subQueue.get(i);
-				this.searchPath(position, i+1, subQueue);
-			}
-			if(path.containsKey(cubePosition)){
-				Set<PositionVector> adjacents = this.getWorld().getAdjacentStandingPositions(cubePosition);
-				PositionVector best = cubePosition;
-				int distance = path.get(best);
-				double accurateDistance = this.getWorld().getCubeLength()*2;
-				for(PositionVector adjacent : adjacents){
-					if((path.containsKey(adjacent)) && (path.get(adjacent) < distance)
-							&& (PositionVector.calcDistance(PositionVector.centrePosition(cubePosition), 
-									PositionVector.centrePosition(adjacent)) < accurateDistance)){
-						best = adjacent;
-						distance = path.get(best);
-						accurateDistance = PositionVector.calcDistance(PositionVector.centrePosition(cubePosition), 
-								PositionVector.centrePosition(adjacent));
-					}
-				}
-				this.moveToAdjacent(PositionVector.calcDifferenceVector(cubePosition,best));	
-			}
-			else {
-				path.clear();
-				this.setDestination(this.getUnitPosition());
-			}
+			//this unit's position is removed from the path
+			PositionVector position = this.getQueue().get(0);
+			this.getQueue().remove(0);
+			PositionVector differenceVector = PositionVector.calcDifferenceVector(position, this.getQueue().get(0));
+			this.moveToAdjacent(differenceVector);
 		}
-		else
-			path.clear();
-	}
-	
-	@Model
-	private void searchPath(PositionVector position, int n, ArrayList<PositionVector> subQueue){
-		Set<PositionVector> allAdjacents = this.getWorld().getAdjacentStandingPositions(position);
-		for(PositionVector adjacent : allAdjacents){
-			if(this.getWorld().isValidStandingPosition(adjacent)){ 
-				if(! this.getQueue().containsKey(adjacent)){
-						if(! this.getWorld().hasSolidCornerInBetween(position, adjacent)){
-							this.getQueue().put(adjacent, n+1);
-							subQueue.add(adjacent);
-						}
-					}
-				else{
-					int distance = this.getQueue().get(adjacent);
-					if(distance > n+1){
-						this.getQueue().replace(adjacent, distance, n+1);
-						subQueue.add(adjacent);
-					}
-				}
-			}
+		catch (IllegalArgumentException exc){
+			
 		}
 	}
 	
@@ -2879,7 +2841,7 @@ public class Unit extends GameObject {
 	 * Return the path queue of this unit.
 	 */
 	@Basic @Raw
-	public Map<PositionVector, Integer> getQueue() {
+	public List<PositionVector> getQueue() {
 		return this.path;
 	}
 	
@@ -2892,7 +2854,7 @@ public class Unit extends GameObject {
 	 * @return 
 	 *       | result == (queue != null)
 	*/
-	public static boolean isValidQueue(Map<PositionVector, Integer> queue) {
+	public static boolean isValidQueue(List<PositionVector> queue) {
 		return (queue != null);
 	}
 	
@@ -2910,7 +2872,7 @@ public class Unit extends GameObject {
 	 *       | ! isValidQueue(getQueue())
 	 */
 	@Raw
-	public void setQueue(Map<PositionVector, Integer> queue) 
+	public void setQueue(List<PositionVector> queue) 
 			throws IllegalArgumentException {
 		if (! isValidQueue(queue))
 			throw new IllegalArgumentException();
@@ -2920,7 +2882,7 @@ public class Unit extends GameObject {
 	/**
 	 * Variable registering the path queue of this unit.
 	 */
-	private Map<PositionVector, Integer> path;
+	private List<PositionVector> path;
 	
 	/**
 	 * Variable registering any unit's inventory capacity.

@@ -57,8 +57,7 @@ public abstract class GameObject {
 	 *  
 	 * @param  unitPosition
 	 *         The unitPosition to check.
-	 * @return True if and only if this game object has no world or all components of the given position are positive and not greater
-	 * 			than this game objects world's number of cubes in the respective component direction.
+	 * @return True if and only if this game object has no world or it is a valid standing position in this game objects world.
 	 *       | result == (this.getWorld() == null) ||
 	 *       | 		(((int) position.getXArgument() < 0) || ((int) position.getYArgument() < 0) 
 	 *       | 		|| ((int) position.getZArgument() < 0) || ((int) position.getXArgument() > this.getWorld().getNbCubesX()) 
@@ -74,13 +73,7 @@ public abstract class GameObject {
 		if(this.getWorld() == null)
 			return true;
 		else{
-			int x = (int) position.getXArgument();
-			int y = (int) position.getYArgument();
-			int z = (int) position.getZArgument();
-			if((x < 0) || (y < 0) || (z < 0) || (x > this.getWorld().getNbCubesX()) || (y > this.getWorld().getNbCubesY())
-					|| (z > this.getWorld().getNbCubesZ()))
-				return false;
-			return true;
+			return this.getWorld().isValidStandingPosition(position);
 		}
 	}
 	
@@ -259,7 +252,7 @@ public abstract class GameObject {
 	 *       | result == (this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition))
 	*/
 	protected boolean isValidNextPosition(PositionVector nextPosition) {
-		return ((this.isValidAdjacent(nextPosition)) ||  (this.getUnitPosition().equals(nextPosition)));
+		return ((this.getUnitPosition().equals(nextPosition)) || (this.isValidAdjacent(nextPosition)));
 	}
 	
 	/**
@@ -310,7 +303,7 @@ public abstract class GameObject {
 	 *			|				&& (this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))))
 	 */
 	public boolean isValidAdjacent(PositionVector position) {
-		if(! this.isValidUnitPosition(position))
+		if(! this.getWorld().areDirectAdjacents(this.getCubePositionVector(), PositionVector.getIntegerPositionVector(position)))
 			return false;
 		int positionX = (int) position.getXArgument();
 		int positionY = (int) position.getYArgument();
