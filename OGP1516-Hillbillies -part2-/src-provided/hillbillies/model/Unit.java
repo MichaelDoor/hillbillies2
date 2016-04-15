@@ -982,11 +982,12 @@ public class Unit extends GameObject {
 			if((this.getQueue().isEmpty()) || (! this.getQueue().contains(PositionVector.getIntegerPositionVector(destination)))){
 					this.setQueue(this.getWorld().determinePath(this.getUnitPosition(), destination));
 					this.setDestination(PositionVector.centrePosition(destination));
+					this.getQueue().remove(0);
 			}
 			//this unit's position is removed from the path
 			PositionVector position = this.getQueue().get(0);
 			this.getQueue().remove(0);
-			PositionVector differenceVector = PositionVector.calcDifferenceVector(position, this.getQueue().get(0));
+			PositionVector differenceVector = PositionVector.calcDifferenceVector(this.getCubePositionVector(), position);
 			this.moveToAdjacent(differenceVector);
 		}
 		catch (IllegalArgumentException exc){

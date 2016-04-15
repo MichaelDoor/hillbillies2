@@ -626,7 +626,7 @@ public class World {
 	 * Add a given unit to this world.
 	 * @param unit	The given unit.
 	 * @effect	If the unit is from a faction that does not exist in this world, this faction is added to this world. the unit is added
-	 * 			to this world's unit set and to the cube corresponding to its position.
+	 * 			to this world's unit set and to the cube corresponding to its position, the given unit's world is set to this world.
 	 * @throws	IllegalArgumentException
 	 * 			This world can not have the given unit as one of it's units.
 	 * @throws IllegalStateException
@@ -638,6 +638,7 @@ public class World {
 				throw new IllegalArgumentException();
 			if(! this.hasAsFaction(unit.getFaction()))
 				this.addFaction(unit.getFaction());
+			unit.changeWorld(this);
 			this.getUnitSet().add(unit);
 			int[] cubePosition = unit.getCubePosition();
 			this.getCube(cubePosition[0], cubePosition[1], cubePosition[2]).addAsContent(unit);
@@ -1491,7 +1492,8 @@ public class World {
 		PositionVector temp1 = PositionVector.centrePosition(position1);
 		PositionVector temp2 = PositionVector.centrePosition(position2);
 		PositionVector differenceVector = PositionVector.calcDifferenceVector(temp1, temp2);
-		return ((Math.abs(differenceVector.getXArgument() + differenceVector.getYArgument() + differenceVector.getZArgument())) == 1);
+		return (Math.abs(differenceVector.getXArgument()) + Math.abs(differenceVector.getYArgument()) 
+															+ Math.abs(differenceVector.getZArgument()) == 1);
 	}
 	
 	/**

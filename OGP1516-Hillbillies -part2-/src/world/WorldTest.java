@@ -325,7 +325,7 @@ public class WorldTest {
 		assertEquals(true, testWorld.areAdjacents(position1, position4));
 	}
 	
-	@Test @Ignore
+	@Test
 	public void hasSolidCornerInBetween(){
 		int nbX = 3;
 		int nbY = 3;
@@ -347,7 +347,7 @@ public class WorldTest {
 		assertEquals(false, flag);
 	}
 	
-	@Test @Ignore
+	@Test
 	public void getReachableAdjacents() {
 		int nbX = 3;
 		int nbY = 3;
@@ -363,7 +363,7 @@ public class WorldTest {
 		assertEquals(true,reachables.contains(new PositionVector(0,2,0)));
 	}
 	
-	@Test @Ignore
+	@Test
 	public void getReachableAdjacents_3D() {
 		int nbX = 3;
 		int nbY = 3;
@@ -389,6 +389,34 @@ public class WorldTest {
 		assertEquals(true,size == 5);
 		assertEquals(false,reachables.contains(new PositionVector(0,2,0)));
 		assertEquals(false,reachables.contains(new PositionVector(1,1,2)));
+	}
+	
+	@Test
+	public void getReachableAdjacents_3D_version2() {
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 3;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 1; matrix[2][0][0] = 1;
+		matrix[0][1][0] = 1; matrix[1][1][0] = 1; matrix[2][1][0] = 1;
+		matrix[0][2][0] = 1; matrix[1][2][0] = 1; matrix[2][2][0] = 1;
+		
+		matrix[0][0][1] = 0; matrix[1][0][1] = 1; matrix[2][0][1] = 1;
+		matrix[0][1][1] = 0; matrix[1][1][1] = 1; matrix[2][1][1] = 1;
+		matrix[0][2][1] = 0; matrix[1][2][1] = 1; matrix[2][2][1] = 1;
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 0; matrix[2][0][2] = 1;
+		matrix[0][1][2] = 0; matrix[1][1][2] = 0; matrix[2][1][2] = 1;
+		matrix[0][2][2] = 0; matrix[1][2][2] = 0; matrix[2][2][2] = 1;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position = new PositionVector(1,1,2);
+		Set<PositionVector> allAdjacents = world2.getAllAdjacentPositions(position);
+		assertEquals(true, (allAdjacents.size() == 17));
+		Set<PositionVector> reachables = world2.getReachableAdjacents(position);
+		int size = reachables.size();
+		assertEquals(true,size == 5);
+		assertEquals(false,reachables.contains(new PositionVector(0,0,1)));
+		assertEquals(false,reachables.contains(new PositionVector(0,2,1)));
 	}
 	
 	@Test @Ignore
@@ -453,5 +481,32 @@ public class WorldTest {
 		PositionVector end = new PositionVector(2,1,0);
 		List<PositionVector> path = world2.determinePath(start, end);
 		assertEquals(true, path.size() == 5);
+	}
+	
+	@Test
+	public void determinePath_3D_gapInBetween(){
+		int nbX = 5;
+		int nbY = 3;
+		int nbZ = 3;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 0; matrix[2][0][0] = 0; matrix[3][0][0] = 0; matrix[4][0][0] = 1;
+		matrix[0][1][0] = 1; matrix[1][1][0] = 0; matrix[2][1][0] = 0; matrix[3][1][0] = 0; matrix[4][1][0] = 1;
+		matrix[0][2][0] = 1; matrix[1][2][0] = 0; matrix[2][2][0] = 0; matrix[3][2][0] = 0; matrix[4][2][0] = 1;
+		
+		matrix[0][0][1] = 1; matrix[1][0][1] = 0; matrix[2][0][1] = 0; matrix[3][0][1] = 0; matrix[4][0][1] = 1;
+		matrix[0][1][1] = 1; matrix[1][1][1] = 0; matrix[2][1][1] = 0; matrix[3][1][1] = 0; matrix[4][1][1] = 1;
+		matrix[0][2][1] = 1; matrix[1][2][1] = 0; matrix[2][2][1] = 0; matrix[3][2][1] = 0; matrix[4][2][1] = 1;
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 0; matrix[2][0][2] = 0; matrix[3][0][2] = 0; matrix[4][0][2] = 0;
+		matrix[0][1][2] = 0; matrix[1][1][2] = 0; matrix[2][1][2] = 0; matrix[3][1][2] = 0; matrix[4][1][2] = 0;
+		matrix[0][2][2] = 0; matrix[1][2][2] = 0; matrix[2][2][2] = 0; matrix[3][2][2] = 0; matrix[4][2][2] = 0;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector start = new PositionVector(0,1,2);
+		PositionVector end = new PositionVector(4,1,2);
+		Unit unit = new Unit(start, "Ikke", new Faction());
+		world2.addUnit(unit);
+		unit.moveTo(end);
+		world2.advanceTime(20);
+		assertEquals(200, unit.getCurrentHP());
 	}
 }
