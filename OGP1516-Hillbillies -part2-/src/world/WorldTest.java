@@ -509,4 +509,65 @@ public class WorldTest {
 		world2.advanceTime(20);
 		assertEquals(200, unit.getCurrentHP());
 	}
+	
+	@Test
+	public void determinePath_UnreachableSimple(){
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 1;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 0; matrix[1][0][0] = 1; matrix[2][0][0] = 0;
+		matrix[0][1][0] = 0; matrix[1][1][0] = 1; matrix[2][1][0] = 0;
+		matrix[0][2][0] = 0; matrix[1][2][0] = 1; matrix[2][2][0] = 0;
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position = new PositionVector(0,0,0);
+		PositionVector destination = new PositionVector(2,0,0);
+		List<PositionVector> path = world2.determinePath(position, destination);
+		assertEquals(true, path.isEmpty());
+		Unit unit = new Unit(position, "Ikke", new Faction());
+		world2.addUnit(unit);
+		unit.moveTo(destination);
+		world2.advanceTime(20);
+		assertEquals(true,unit.getCubePositionVector().equals(position));
+		assertEquals(true,unit.getActivityStatus().equals("default"));
+	}
+
+	@Test
+	public void fallToDeath() {
+		int nbX = 5;
+		int nbY = 3;
+		int nbZ = 4;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 0; matrix[1][0][0] = 0; matrix[2][0][0] = 0; 
+		matrix[0][1][0] = 0; matrix[1][1][0] = 0; matrix[2][1][0] = 0; 
+		matrix[0][2][0] = 0; matrix[1][2][0] = 0; matrix[2][2][0] = 0; 
+		
+		matrix[0][0][1] = 0; matrix[1][0][1] = 0; matrix[2][0][1] = 0; 
+		matrix[0][1][1] = 0; matrix[1][1][1] = 0; matrix[2][1][1] = 0; 
+		matrix[0][2][1] = 0; matrix[1][2][1] = 0; matrix[2][2][1] = 0; 
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 0; matrix[2][0][2] = 0; 
+		matrix[0][1][2] = 0; matrix[1][1][2] = 0; matrix[2][1][2] = 0; 
+		matrix[0][2][2] = 0; matrix[1][2][2] = 0; matrix[2][2][2] = 0; 
+		
+		matrix[0][0][3] = 0; matrix[1][0][3] = 0; matrix[2][0][3] = 0; 
+		matrix[0][1][3] = 0; matrix[1][1][3] = 0; matrix[2][1][3] = 0; 
+		matrix[0][2][3] = 0; matrix[1][2][3] = 0; matrix[2][2][3] = 0; 
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		PositionVector position = new PositionVector(1,1,0);
+		Unit unit = new Unit(position, "Ikke", new Faction());
+		world2.addUnit(unit);
+		int i = 0;
+		while(i < 20){
+			unit.moveToAdjacent(new PositionVector(0,0,1));
+			world2.advanceTime(5);
+			i++;
+		}
+		assertEquals(true, unit.isTerminated());
+	}
+	
+	
+	
+	
+	
 }

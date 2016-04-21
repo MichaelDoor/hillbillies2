@@ -877,6 +877,8 @@ public class Unit extends GameObject {
 			throw new IllegalArgumentException();
 		}
 		String status = this.getActivityStatus();
+		if(status == null)
+			return;
 		if((this.getUnitPosition().equals(this.getNextPosition()) && (this.getUnitPosition().equals(this.getDestination()))))
 			this.getQueue().clear();
 		if(status.equals("fall"))
@@ -981,6 +983,8 @@ public class Unit extends GameObject {
 			//unit starts moving or changed destination
 			if((this.getQueue().isEmpty()) || (! this.getQueue().contains(PositionVector.getIntegerPositionVector(destination)))){
 					this.setQueue(this.getWorld().determinePath(this.getUnitPosition(), destination));
+					if(this.getQueue().isEmpty())
+						return;
 					this.setDestination(PositionVector.centrePosition(destination));
 					this.getQueue().remove(0);
 			}
@@ -1077,7 +1081,7 @@ public class Unit extends GameObject {
 			throws IllegalArgumentException, IllegalStateException, NullPointerException {
 		try{
 			if(! position.equals(this.getUnitPosition())){
-				boolean flag1 = (!isValidUnitPosition(PositionVector.sum(this.getUnitPosition(),position)));
+				boolean flag1 = (!this.getWorld().isValidPosition(PositionVector.sum(this.getUnitPosition(),position)));
 				boolean flag2 = (!isValidAdjacent(PositionVector.sum(this.getUnitPosition(),position)));
 				boolean flag3 = (this.getWorld().isSolidPosition(PositionVector.sum(this.getUnitPosition(),position)));
 //				boolean flag4 = (! this.getWorld().isValidStandingPosition(PositionVector.sum(this.getUnitPosition(),
@@ -1201,14 +1205,19 @@ public class Unit extends GameObject {
 	 *  
 	 * @param  destination
 	 *         The destination to check.
-	 * @return 
-	 *       | result == isValidUnitPosition(destination)
+	 * @return True if and only if this unit does not have a world or the destination is in this unit's world and is
+	 * 			 a passable cube of this world.
+	 *       | result == (this.getWorld() == null) 
+	 *       |		|| ((this.getWorld().isValidPosition(destination)) && (! this.getWorld().isSolidPosition(destination)))
 	 * @throws	NullPointerException
 	 * 			The destination is not effective.
 	 * 			| destination == null
 	*/
 	private boolean isValidDestination(PositionVector destination) throws NullPointerException{
-		return this.isValidUnitPosition(destination);
+		if(this.getWorld() == null)
+			return true;
+		else
+			return ((this.getWorld().isValidPosition(destination)) && (! this.getWorld().isSolidPosition(destination)));
 	}
 	
 	/**
@@ -1291,7 +1300,7 @@ public class Unit extends GameObject {
 		if (time < 0){
 			throw new IllegalArgumentException();
 		}
-		if(this.getSprint() == true) {
+		if((this.getSprint() == true) && (! this.fallCheck())) {
 			this.sprint(time);
 		} else {
 			this.walk(time);
@@ -1419,6 +1428,8 @@ public class Unit extends GameObject {
 				this.gainExp(1);
 			if(this.getActivityStatus().equals("fall"))
 				this.decreaseHP(10);
+			if(this.isTerminated())
+				return;
 			this.setActivityStatus("default");
 			this.setCurrentVelocity(new PositionVector(0, 0, 0));
 			double restingTime = dt-travelTime;
@@ -1696,7 +1707,7 @@ public class Unit extends GameObject {
 	 */
 	private void improveEquipment() throws IllegalStateException{
 		if((!this.getWorld().isWorkshop(this.getWorkPosition())) || (! this.getWorld().containsBoulder(this.getWorkPosition()))
-				|| (this.getWorld().containsLog(this.getWorkPosition())))
+				|| (! this.getWorld().containsLog(this.getWorkPosition())))
 			throw new IllegalStateException();
 		Boulder boulder = this.getWorld().getABoulder(this.getWorkPosition());
 		this.getWorld().removeMaterial(boulder);
@@ -2790,7 +2801,7 @@ public class Unit extends GameObject {
 	 * Terminate this unit.
 	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction and it's world.
 	 * 			It's activity status, velocity, destination, faction, name, next position, world, defend attempts map, 
-	 * 			path and work position are given the null reference.
+	 * 			path and work position are given the null reference. It's double hp and stamina are set 0.
 	 * 			| this.emptyInventory(this.getUnitPosition())
 	 * 			| this.getFaction().removeUnit(this)
 	 * 			| this.getWorld().removeUnit(this)
@@ -2799,9 +2810,10 @@ public class Unit extends GameObject {
 	 *			| this.faction = null
 	 *			| this.name = null
 	 *			| this.defendAttempts = null
-	 *			| this.inventory = null
 	 *			| this.path = null
 	 *			| this.workPosition = null
+	 *			| this.setDoubleHP(0)
+	 *			| this.setDoubleStam(0)
 	 * @throws	IllegalStateException
 	 * 			This unit is already terminated.
 	 * 			| this.isTerminated()
@@ -2818,24 +2830,29 @@ public class Unit extends GameObject {
 		this.name = null;
 		this.getWorld().removeUnit(this);
 		this.defendAttempts = null;
-		this.inventory = null;
 		this.path = null;
 		this.workPosition = null;
+		this.setDoubleHP(0);
+		this.setDoubleStamina(0);
 		super.terminate();
 	}
 	
 	/**
 	 * Check whether this unit is terminated.
 	 * @return	True is and only if this unit no longer has a world, nor faction and it's activity status, velocity
-	 * 			destination, faction, name, next position and world equal null.
+	 * 			destination, faction, name, next position and world equal null and it's double hp an stamina are zero.
 	 * 			| (this.world == null)
 	 * 			| && (this.activityStatus == null) && (this.currentVelocity == null) && (this.destination == null)
 	 * 			| && (this.faction == null) && (this.name == null) && (this.nextPosition == null) && (this.world == null)
+	 * 			| && (this.getDoubleHP == 0.0) && (this.getDoubleStamina == 0.0)
 	 */
 	public boolean isTerminated(){
-		return ((this.world == null) && (this.activityStatus == null)
-				&& (this.destination == null) && (this.faction == null)
-				&& (this.name == null) && (super.isTerminated()));
+		boolean flag1 = ((this.world == null) && (this.activityStatus == null));
+		boolean flag2 = ((this.destination == null) && (this.faction == null));
+		boolean flag3 = (this.name == null);
+		boolean flag4 = (super.isTerminated());
+		boolean flag5 = ((this.getDoubleHP() == 0.0) && (this.getDoubleStamina() == 0.0));
+		return (flag1 && flag2 && flag3 && flag4 && flag5);
 	}
 	
 	/**
@@ -3044,7 +3061,7 @@ public class Unit extends GameObject {
 		if(workPosition == null)
 			return true;
 		PositionVector distance = PositionVector.calcDifferenceVector(
-				PositionVector.centrePosition(workPosition),PositionVector.centrePosition(this.getCubePositionVector()));
+				PositionVector.centrePosition(this.getCubePositionVector()), PositionVector.centrePosition(workPosition));
 		return (this.isValidAdjacent(PositionVector.sum(distance, this.getCubePositionVector())));
 	}
 	

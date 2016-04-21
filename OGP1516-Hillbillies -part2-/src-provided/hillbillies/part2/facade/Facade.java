@@ -39,9 +39,14 @@ public class Facade implements IFacade {
 
 	@Override
 	public double[] getPosition(Unit unit) throws ModelException {
-		PositionVector position = unit.getUnitPosition();
-		double[] coordinates = {position.getXArgument(),position.getYArgument(),position.getZArgument()};
-		return coordinates;
+		try{
+			PositionVector position = unit.getUnitPosition();
+			double[] coordinates = {position.getXArgument(),position.getYArgument(),position.getZArgument()};
+			return coordinates;
+		}
+		catch (NullPointerException exc){
+			throw new ModelException();
+		}
 	}
 
 	@Override
@@ -162,6 +167,9 @@ public class Facade implements IFacade {
 
 	@Override
 	public boolean isMoving(Unit unit) throws ModelException {
+		String activityStatus = unit.getActivityStatus();
+		if(activityStatus == null)
+			return false;
 		return (unit.getActivityStatus().equals("move"));
 	}
 
@@ -205,6 +213,9 @@ public class Facade implements IFacade {
 
 	@Override
 	public boolean isWorking(Unit unit) throws ModelException {
+		String activityStatus = unit.getActivityStatus();
+		if(activityStatus == null)
+			return false;
 		return (unit.getActivityStatus().equals("work"));
 	}
 
@@ -227,6 +238,9 @@ public class Facade implements IFacade {
 
 	@Override
 	public boolean isAttacking(Unit unit) throws ModelException {
+		String  activityStatus = unit.getActivityStatus();
+		if(activityStatus == null)
+			return false;
 		return (unit.getActivityStatus().equals("attack"));
 	}
 
@@ -242,6 +256,9 @@ public class Facade implements IFacade {
 
 	@Override
 	public boolean isResting(Unit unit) throws ModelException {
+		String activityStatus = unit.getActivityStatus();
+		if(activityStatus == null)
+			return false;
 		return (unit.getActivityStatus().equals("rest"));
 	}
 

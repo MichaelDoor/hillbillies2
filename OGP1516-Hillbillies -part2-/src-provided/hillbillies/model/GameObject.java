@@ -73,7 +73,7 @@ public abstract class GameObject {
 		if(this.getWorld() == null)
 			return true;
 		else{
-			return this.getWorld().isValidStandingPosition(position);
+			return this.getWorld().isValidPosition(position);
 		}
 	}
 	
@@ -396,25 +396,25 @@ public abstract class GameObject {
 	
 	/**
 	 * Terminate this game object.
-	 * @effect	This game object's velocity, next position, position and world are set null.
+	 * @effect	This game object's next position and world are set null, it's velocity to zero.
 	 * @throws IllegalStateException
 	 * 			This game object is already terminated.
 	 */
 	protected void terminate() throws IllegalStateException {
 		if(this.isTerminated())
 			throw new IllegalStateException("Game object already terminated!");
-		this.currentVelocity = null;
+		this.setCurrentVelocity(new PositionVector(0,0,0));
 		this.nextPosition = null;
-		this.position = null;
 		this.world = null;
 	}
 	
 	/**
 	 * Check whether this game object is terminated.
-	 * @return	True if and only if his game object's velocity, next position, position and world are null.
+	 * @return	True if and only if his game object's next position and world are null and it's velocity zero.
 	 */
 	public boolean isTerminated() {
-		return ((this.getCurrentVelocityBasic() == null) && (this.getNextPosition() == null) && (this.getUnitPosition() == null)
+		PositionVector velocity = this.getCurrentVelocityBasic();
+		return ((velocity.equals(new PositionVector(0,0,0))) && (this.getNextPosition() == null)
 				&& (this.getWorld() == null));
 	}
 	

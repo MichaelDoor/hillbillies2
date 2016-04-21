@@ -432,9 +432,8 @@ public class World {
 			cube.addAsContent(item);
 			this.addMaterial(item);
 		}
-		this.getConnectedToBorder().changeSolidToPassable(x, y, z);
+		List<int[]> others = this.getConnectedToBorder().changeSolidToPassable(x, y, z);
 		this.replaceCube(cube);
-		List<int[]> others = this.connectedToBorder.changeSolidToPassable(x, y, z);
 		this.propagateCaveIn(others);
 	}
 	
@@ -467,7 +466,6 @@ public class World {
 		this.getConnectedToBorder().changeSolidToPassable(x, y, z);
 		this.replaceCube(cube);
 	}
-	
 	/**
 	 * Return whether by chance an item is spawned as a result of a cave-in.
 	 * @return	0.25 chance for true.
@@ -654,7 +652,8 @@ public class World {
 	/**
 	 * Remove a given unit from this world.
 	 * @param unit	The given unit.
-	 * @effect	The given unit is removed from this world's unit set and from this world's cube that had it as content.
+	 * @effect	The given unit is removed from this world's unit set and from this world's cube that had it as content, the given
+	 * 			unit's world is set to null.
 	 * @throws	IllegalArgumentException
 	 * 			This world does not have the given unit in it's unit set.
 	 * @throws	NullPointerException
@@ -669,6 +668,7 @@ public class World {
 		this.getUnitSet().remove(unit);
 		this.getCube((int) unitCubePosition.getXArgument(), (int) unitCubePosition.getYArgument(),
 				(int) unitCubePosition.getZArgument()).removeAsContent(unit);
+		unit.changeWorld(null);
 	}
 	
 	/**
@@ -1382,11 +1382,14 @@ public class World {
 			throw new IllegalArgumentException("This world does not have the given unit as one of its units!");
 		Faction allyFaction = unit.getFaction();
 		Set<Unit> adjacentUnits = this.getAdjacentUnits(unit.getCubePositionVector());
+		Set<Unit> result = new HashSet<>();;
+		for(Unit adjacentUnit : adjacentUnits)
+			result.add(adjacentUnit);
 		for(Unit adjacentUnit : adjacentUnits){
 			if(adjacentUnit.getFaction().equals(allyFaction))
-				adjacentUnits.remove(adjacentUnit);
+				result.remove(adjacentUnit);
 		}
-		return adjacentUnits;
+		return result;
 	}
 	
 	/**
