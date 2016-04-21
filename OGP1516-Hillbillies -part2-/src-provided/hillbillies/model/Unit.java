@@ -1183,6 +1183,8 @@ public class Unit extends GameObject {
 	 * 			| result == this.currentVelocity
 	 */
 	public PositionVector getCurrentVelocity() {
+		if(this.activityStatus.equals("fall"))
+			return this.currentVelocity;
 		if(this.getSprint() == true){
 			return PositionVector.multiplyBy(2, this.currentVelocity);
 		}
@@ -1418,9 +1420,12 @@ public class Unit extends GameObject {
 		if (dt <0)
 			throw new IllegalArgumentException();
 		double distance = PositionVector.calcDistance(this.getUnitPosition(), this.getNextPosition());
-		double speed = PositionVector.calcDistance((new PositionVector(0,0,0)), this.getCurrentVelocity());
+		PositionVector velocity = this.getCurrentVelocity();
+		if(this.getActivityStatus().equals("fall"))
+			velocity = GameObject.fallVelocity;
+		double speed = PositionVector.calcDistance((new PositionVector(0,0,0)), velocity);
 		double travelTime = distance/speed;
-		this.setOrientation( Math.atan2(this.getCurrentVelocity().getYArgument(), this.getCurrentVelocity().getXArgument()));
+		this.setOrientation( Math.atan2(velocity.getYArgument(), velocity.getXArgument()));
 		if (travelTime <= dt) {
 			this.setUnitPosition(new PositionVector(this.getNextPosition().getXArgument(),this.getNextPosition().getYArgument(),
 					this.getNextPosition().getZArgument()));
@@ -1438,7 +1443,7 @@ public class Unit extends GameObject {
 			}
 		}
 		else {
-			this.setUnitPosition(PositionVector.sum(this.getUnitPosition(), PositionVector.multiplyBy(dt, this.getCurrentVelocity())));
+			this.setUnitPosition(PositionVector.sum(this.getUnitPosition(), PositionVector.multiplyBy(dt, velocity)));
 		}
 		this.increaseAutRestCounter(dt);
 	}
