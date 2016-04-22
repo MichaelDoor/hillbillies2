@@ -223,7 +223,6 @@ public class Facade implements IFacade {
 	public void fight(Unit attacker, Unit defender) throws ModelException {
 		try{
 			attacker.attack(defender);
-			defender.defend(attacker);
 		}
 		catch (IllegalStateException exc){
 			throw new ModelException("fight problem");

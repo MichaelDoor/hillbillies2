@@ -388,18 +388,21 @@ public class World {
 		int y = (int) position.getYArgument();
 		int z = (int) position.getZArgument();
 		int terrain = this.getCubeType(x,y,z);
+		Cube oldCube = this.getCube(x, y, z);
+		@SuppressWarnings("unchecked")
+		Set<GameObject> oldContent = (Set<GameObject>) oldCube.getContent().clone();
 		this.caveIn(x, y, z);
 		Cube newCube = this.getCube(x, y, z);
-		if((terrain == 1) &&(! newCube.containsBoulder())){
+		Set<GameObject> newContent = newCube.getContent();
+		boolean hasCaveInItem = (oldContent.size() < newContent.size());
+		if((terrain == 1) &&(! hasCaveInItem)){
 			Boulder boulder = new Boulder(PositionVector.centrePosition(new PositionVector(x, y, z)));
 			boulder.changeWorld(this);
-			newCube.addAsContent(boulder);
 			this.addMaterial(boulder);
 		}
-		if((terrain == 2) &&(! newCube.containsLog())){
+		if((terrain == 2) &&(! hasCaveInItem)){
 			Log log = new Log(PositionVector.centrePosition(new PositionVector(x, y, z)));
-			log.changeWorld(this);
-			newCube.addAsContent(log);	
+			log.changeWorld(this);	
 			this.addMaterial(log);
 		}
 	}
@@ -410,8 +413,8 @@ public class World {
 	 * @param y	The y coordinate of the targeted cube.
 	 * @param z	The z coordinate of the targeted cube.
 	 * @effect	Creates a new air cube, injects the content of the old cube into it and adds the item that spawns by the cave-in
-	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube and propagates the cave in to
-	 * neighboring cubes that should cave-in.
+	 * (if any is spawned) to it's content and finally replaces the old cube with the new air cube, adds a cave-in item if any is created
+	 * and propagates the cave in to neighboring cubes that should cave-in.
 	 * @throws	IllegalStateException
 	 * 			The targeted cube is passable.
 	 * @throws	IllegalArgumentException
@@ -427,13 +430,15 @@ public class World {
 		HashSet<GameObject> content = cube.getContent();
 		int terrainType = cube.getTerrainType();
 		cube = new Air(position, content);
+		Material item = null;
 		if (caveInItemCheck() == true){
-			Material item = this.caveInItem(position, terrainType);
-			cube.addAsContent(item);
-			this.addMaterial(item);
+			item = this.caveInItem(position, terrainType);
+			item.changeWorld(this);
 		}
 		List<int[]> others = this.getConnectedToBorder().changeSolidToPassable(x, y, z);
 		this.replaceCube(cube);
+		if(item != null)
+			this.addMaterial(item);
 		this.propagateCaveIn(others);
 	}
 	
@@ -457,14 +462,14 @@ public class World {
 		HashSet<GameObject> content = cube.getContent();
 		int terrainType = cube.getTerrainType();
 		cube = new Air(position, content);
+		Material item = null;
 		if (caveInItemCheck() == true){
-			Material item = this.caveInItem(position, terrainType);
+			item = this.caveInItem(position, terrainType);
 			item.changeWorld(this);
-			cube.addAsContent(item);
-			this.addMaterial(item);
 		}
-		this.getConnectedToBorder().changeSolidToPassable(x, y, z);
 		this.replaceCube(cube);
+		if(item != null)
+			this.addMaterial(item);
 	}
 	/**
 	 * Return whether by chance an item is spawned as a result of a cave-in.

@@ -16,6 +16,7 @@ import org.junit.Test;
 import cube.Cube;
 import faction.Faction;
 import hillbillies.part2.listener.DefaultTerrainChangeListener;
+import objects.Material;
 import objects.Unit;
 import position.PositionVector;
 
@@ -566,7 +567,37 @@ public class WorldTest {
 		assertEquals(true, unit.isTerminated());
 	}
 	
-	
+	@Test
+	public void fall_Material() {
+		int nbX = 5;
+		int nbY = 3;
+		int nbZ = 4;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 0; matrix[1][0][0] = 0; matrix[2][0][0] = 0; 
+		matrix[0][1][0] = 0; matrix[1][1][0] = 1; matrix[2][1][0] = 0; 
+		matrix[0][2][0] = 0; matrix[1][2][0] = 0; matrix[2][2][0] = 0; 
+		
+		matrix[0][0][1] = 0; matrix[1][0][1] = 0; matrix[2][0][1] = 0; 
+		matrix[0][1][1] = 0; matrix[1][1][1] = 0; matrix[2][1][1] = 0; 
+		matrix[0][2][1] = 0; matrix[1][2][1] = 0; matrix[2][2][1] = 0; 
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 0; matrix[2][0][2] = 0; 
+		matrix[0][1][2] = 0; matrix[1][1][2] = 0; matrix[2][1][2] = 0; 
+		matrix[0][2][2] = 0; matrix[1][2][2] = 0; matrix[2][2][2] = 0; 
+		
+		matrix[0][0][3] = 0; matrix[1][0][3] = 0; matrix[2][0][3] = 0; 
+		matrix[0][1][3] = 0; matrix[1][1][3] = 0; matrix[2][1][3] = 0; 
+		matrix[0][2][3] = 0; matrix[1][2][3] = 0; matrix[2][2][3] = 0; 
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		world2.collapse(new PositionVector(1,1,0));
+		world2.advanceTime(5);
+		Set<Material> materials = world2.getMaterialSet();
+		assertEquals(true, materials.size() == 1);
+		for(Material material : materials){
+			PositionVector position = material.getUnitPosition();
+			assertEquals(true, position.equals(new PositionVector(1.5,1.5,0)));
+		}
+	}
 	
 	
 	

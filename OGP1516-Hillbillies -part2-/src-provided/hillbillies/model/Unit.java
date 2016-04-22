@@ -1769,6 +1769,8 @@ public class Unit extends GameObject {
 	 * @effect	This unit's orientation is updated to face it's target.
 	 * 			| this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
 	 * 			| 	target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()))
+	 * @effect	The given target defends itself from this units.
+	 * 			| target.defend(this)
 	 * @throws	IllegalStateException
 	 * 			This unit is already attacking or is falling or the target is falling.
 	 * 			| (this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall")))
@@ -1794,6 +1796,7 @@ public class Unit extends GameObject {
 		this.resetAttackTime();
 		this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
 				target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
+		target.defend(this);
 	}
 	
 	/**
