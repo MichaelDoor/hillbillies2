@@ -1857,7 +1857,7 @@ public class Unit extends GameObject {
 	private void claimAttackExp() throws IllegalStateException {
 		if((! this.getActivityStatus().equals("attack")) || (this.getTarget() == null))
 			throw new IllegalStateException();
-		if(this.getTarget().getDefendAttempt(this) == true)
+		if(this.getTarget().getDefendAttempt(this) == false)
 			this.gainExp(20);
 		this.getTarget().removeDefendAttempt(this);
 		this.setTarget(null);
@@ -2806,7 +2806,7 @@ public class Unit extends GameObject {
 	/**
 	 * Terminate this unit.
 	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction and it's world.
-	 * 			It's activity status, velocity, destination, faction, name, next position, world, defend attempts map, 
+	 * 			It's activity status, velocity, destination, faction, name, next position, world, 
 	 * 			path and work position are given the null reference. It's double hp and stamina are set 0.
 	 * 			| this.emptyInventory(this.getUnitPosition())
 	 * 			| this.getFaction().removeUnit(this)
@@ -2815,7 +2815,6 @@ public class Unit extends GameObject {
 	 *			| this.destination = null
 	 *			| this.faction = null
 	 *			| this.name = null
-	 *			| this.defendAttempts = null
 	 *			| this.path = null
 	 *			| this.workPosition = null
 	 *			| this.setDoubleHP(0)
@@ -2835,7 +2834,6 @@ public class Unit extends GameObject {
 		this.faction = null;
 		this.name = null;
 		this.getWorld().removeUnit(this);
-		this.defendAttempts = null;
 		this.path = null;
 		this.workPosition = null;
 		this.setDoubleHP(0);
@@ -3218,7 +3216,7 @@ public class Unit extends GameObject {
 	 */
 	public boolean getDefendAttempt(Unit attacker) throws NullPointerException, IllegalArgumentException {
 		if(! this.hasAsDefendAttempt(attacker))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Does not have such a defend attempt!");
 		return this.getDefendAttempts().get(attacker);
 	}
 	
@@ -3291,12 +3289,16 @@ public class Unit extends GameObject {
 			throw new IllegalStateException();
 		Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
 		validAdjacents.add(this.getCubePositionVector());
+		Set<PositionVector> dodgePositions = new HashSet<>();
+		for(PositionVector adjacent : validAdjacents)
+			dodgePositions.add(adjacent);
 		for(PositionVector adjacent : validAdjacents){
 			if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
-				validAdjacents.remove(adjacent);
+				dodgePositions.remove(adjacent);
 		}
 		Random generator = new Random();
-		PositionVector[] positions = (PositionVector[]) validAdjacents.toArray();
+		PositionVector[] temp = {};
+		PositionVector[] positions = dodgePositions.toArray(temp);
 		PositionVector position = positions[generator.nextInt(positions.length)];
 		return new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
 				position.getZArgument() + generator.nextDouble());
