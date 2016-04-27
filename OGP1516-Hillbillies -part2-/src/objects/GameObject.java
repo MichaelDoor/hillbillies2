@@ -290,7 +290,7 @@ public abstract class GameObject {
 	 * Check whether a given position is located in an adjacent cube of the position of this game object, or is this unit's position.
 	 * @param position	The position to check.
 	 * @return	True if and only if the absolute values of the components of the difference vector between this unit's cube position 
-	 * 			and the given position aren't greater than 1.
+	 * 			and the given position aren't greater than 1 and it's a valid position in this game object's world.
 	 * 			| result == (((Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 1) 
 	 * 			|				|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == 0) 
 	 * 			|					|| (Math.abs(this.getCubePosition()[0] - (int) position.getXArgument()) == -1))
@@ -301,13 +301,11 @@ public abstract class GameObject {
 	 *			|				|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 0) 
 	 *			|					|| (Math.abs(this.getCubePosition()[2] - (int) position.getZArgument()) == 1))
 	 *			|				&& (this.isValidUnitPosition(PositionVector.sum(position, this.getUnitPosition())))))
-	 *	@throws	IllegalArgumentException
-	 *			The given position is not a valid position for this unit and the world it's in.
-	 *			| (! this.getWorld().isValidPosition(position))
+	 *			| 				&& (! this.getWorld().isValidPosition(position))
 	 */
 	public boolean isValidAdjacent(PositionVector position) {
 		if(! this.getWorld().isValidPosition(position))
-			throw new IllegalArgumentException();
+			return false;
 		int positionX = (int) position.getXArgument();
 		int positionY = (int) position.getYArgument();
 		int positionZ = (int) position.getZArgument();

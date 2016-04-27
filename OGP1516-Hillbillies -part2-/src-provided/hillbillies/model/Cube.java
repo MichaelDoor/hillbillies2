@@ -198,6 +198,8 @@ public abstract class Cube {
 		this.content.remove(object);
 	}
 	
+	drop an object by emptying you inventory over a gap, an exception is thrown
+	
 	/**
 	 * Check whether the given object can belong to the content of this cube.
 	 * @param object	The given object.

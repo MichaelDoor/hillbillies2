@@ -978,7 +978,7 @@ public class Unit extends GameObject {
 		try{
 			if((! this.isValidUnitPosition(destination)) 
 					|| (this.getCubePositionVector().equals(PositionVector.getIntegerPositionVector(destination))))
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("MoveTo exception");
 			//unit starts moving or changed destination
 			if((this.getQueue().isEmpty()) || (! this.getQueue().contains(PositionVector.getIntegerPositionVector(destination)))){
 					this.setQueue(this.getWorld().determinePath(this.getUnitPosition(), destination));
@@ -1748,7 +1748,7 @@ public class Unit extends GameObject {
 					|| (! material.getCubePositionVector().equals(new PositionVector((int)this.getWorkPosition().getXArgument(), 
 						(int)this.getWorkPosition().getYArgument(), (int)this.getWorkPosition().getZArgument())))
 						|| (this.getInventory().size() == inventoryCapacity))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Pick up material exception");
 		this.addMaterialToInventory(material);
 	}
 	
@@ -1786,7 +1786,7 @@ public class Unit extends GameObject {
 			throw new IllegalStateException();
 		}
 		if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Attack exception");
 		}
 		this.setTarget(target);
 		this.setMinRestCounter(0);
@@ -1957,6 +1957,7 @@ public class Unit extends GameObject {
 	public void defend(Unit enemy) throws NullPointerException {
 		boolean successFlag = false;
 		this.setMinRestCounter(0);
+		this.setAttackTime(0.0);
 		this.setActivityStatus("default");
 		this.setOrientation(Math.atan2((enemy.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
 				enemy.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
@@ -2897,7 +2898,7 @@ public class Unit extends GameObject {
 	public void setQueue(List<PositionVector> queue) 
 			throws IllegalArgumentException {
 		if (! isValidQueue(queue))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("SetQueue exception");
 		this.path = queue;
 	}
 	
@@ -2968,7 +2969,7 @@ public class Unit extends GameObject {
 	 */
 	public void addMaterialToInventory(Material material) throws IllegalArgumentException{
 		if(! this.canHaveAsMaterial(material))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("AddMaterialToInventory exception");
 		this.getInventory().add(material);
 		this.getWorld().removeMaterial(material);
 	}
@@ -3146,6 +3147,8 @@ public class Unit extends GameObject {
 	 * Register a defend attempt of this unit, for a given attacker and a defend attempt.
 	 * @param attacker	The given attacking unit.
 	 * @param couldDefendFlag	The given outcome of the defend attempt.
+	 * @effect	If for some reason this unit still has a defend attempt for the given attacker, it is removed.
+	 * 			| this.removeDefendAttempt(attacker)
 	 * @effect	The attacking unit and given outcome are put into this unit's defend attempts map.
 	 * 			| this.getDefendAttempts().put(attacker, couldDefendFlag)
 	 * @throws IllegalArgumentException
@@ -3154,7 +3157,9 @@ public class Unit extends GameObject {
 	 */
 	public void addDefendAttempt(Unit attacker, boolean couldDefendFlag) throws IllegalArgumentException {
 		if(! canHaveAsDefendAttempt(attacker))
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException("Can't have as defend attempt!");
+		if(this.hasAsDefendAttempt(attacker))
+			this.removeDefendAttempt(attacker);
 		this.getDefendAttempts().put(attacker, couldDefendFlag);
 	}
 	
@@ -3179,12 +3184,12 @@ public class Unit extends GameObject {
 	/**
 	 * Check whether this unit can have a given attacker in a defend attempt.
 	 * @param attacker	The given attacking unit.
-	 * @return	True if and only if the given attacker is effective and a unit of this unit's world and not already in a defend
-	 * 			attempt of this unit.
-	 * 			result == ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)))
+	 * @return	True if and only if the given attacker is effective and a unit of this unit's world or this unit is terminated.
+	 * 			| result == ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)))
+	 * 			|  || (this.isTerminated())
 	 */
 	public boolean canHaveAsDefendAttempt(Unit attacker){
-		return ((attacker != null) && (this.getWorld().hasAsUnit(attacker)) && (! this.hasAsDefendAttempt(attacker)));
+		return (((attacker != null) && (this.getWorld().hasAsUnit(attacker))) || (this.isTerminated()));
 	}
 	
 	/**
@@ -3288,17 +3293,19 @@ public class Unit extends GameObject {
 		if(this.getWorld() == null)
 			throw new IllegalStateException();
 		Set<PositionVector> validAdjacents = this.getWorld().getAdjacentStandingPositions(this.getUnitPosition());
-		validAdjacents.add(this.getCubePositionVector());
 		Set<PositionVector> dodgePositions = new HashSet<>();
 		for(PositionVector adjacent : validAdjacents)
 			dodgePositions.add(adjacent);
 		for(PositionVector adjacent : validAdjacents){
-			if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getXArgument())
+			if((int) adjacent.getZArgument() != (int) this.getUnitPosition().getZArgument())
 				dodgePositions.remove(adjacent);
 		}
 		Random generator = new Random();
 		PositionVector[] temp = {};
 		PositionVector[] positions = dodgePositions.toArray(temp);
+		// in case this unit is locked in
+		if(positions.length == 0)
+			positions[0] = this.getCubePositionVector();
 		PositionVector position = positions[generator.nextInt(positions.length)];
 		return new PositionVector(position.getXArgument() + generator.nextDouble(), position.getYArgument() + generator.nextDouble(), 
 				position.getZArgument() + generator.nextDouble());
