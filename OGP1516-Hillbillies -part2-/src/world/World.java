@@ -1672,8 +1672,6 @@ public class World {
 			if(! this.canHaveAsMaterial(material))
 				this.removeMaterial(material);
 		}
-		this.setUnitSet(unitSet);
-		this.setMaterialSet(materialSet);
 	}
 	
 	/**
