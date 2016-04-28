@@ -720,12 +720,12 @@ public class Unit extends GameObject {
 	 * @pre     The toughness has to be a valid toughness.
 	 * 			| isValidToughness(toughness)
 	 * @return	Return the maximum hitpoints calculated by the given formula.  
-	 * 			| result == 200*((int) Math.ceil(weight()/100.0))*((int) Math.ceil(toughness()/100.0))
+	 * 			| result == (int) Math.ceil(200.0*(weight/100.0)*(toughness/100.0))
 	 */
 	private int calcMaxHPStam(int weight, int toughness) {
 		assert ((isValidWeight(weight)) && (isValidToughness(toughness)));
 		
-		return 200*((int) Math.ceil(weight/100.0))*((int) Math.ceil(toughness/100.0));
+		return (int) Math.ceil(200.0*(weight/100.0)*(toughness/100.0));
 	}
 	
 	/**
@@ -1076,6 +1076,9 @@ public class Unit extends GameObject {
 	 * @throws	NullPointerException
 	 * 			The given position is not effective.
 	 * 			| position == null
+	 * @throws	NullPointerException
+	 * 			This unit is terminated.
+	 * 			| this.isTerminated()
 	 */
 	public void moveToAdjacent(PositionVector position) 
 			throws IllegalArgumentException, IllegalStateException, NullPointerException {
@@ -1112,6 +1115,10 @@ public class Unit extends GameObject {
 		}
 		catch (IllegalStateException exc){
 			
+		}
+		catch(NullPointerException exc){
+			if(! this.isTerminated())
+				throw new NullPointerException();
 		}
 	}
 	
@@ -1275,10 +1282,15 @@ public class Unit extends GameObject {
 	 */
 	@Raw
 	public void setSprint(boolean sprintStatus) throws IllegalStateException {
-		if((this.getCurrentStamina() == 0) && (sprintStatus == true)) {
-			throw new IllegalStateException("0 stamina!");
+		try{
+			if((this.getCurrentStamina() == 0) && (sprintStatus == true)) {
+				throw new IllegalStateException("0 stamina!");
+			}
+			this.sprintStatus = sprintStatus;
 		}
-		this.sprintStatus = sprintStatus;
+		catch (IllegalStateException exc){
+			
+		}
 	}
 	
 	/**
@@ -1781,22 +1793,33 @@ public class Unit extends GameObject {
 	 * @throws	NullPointerException
 	 * 			The target is not effective.
 	 * 			| target == null
+	 * @throws IllegalArgumentException
+	 * 			The target is terminated.
+	 * 			| target.isTerminated()
 	 */
-	public void attack(Unit target) throws IllegalStateException, IllegalArgumentException, NullPointerException {
-		if ((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall"))
-				|| (target.getActivityStatus().equals("fall"))) {
-			throw new IllegalStateException();
+	public void attack(Unit target) throws IllegalStateException, IllegalArgumentException, NullPointerException{
+		try{
+			if (target.isTerminated())
+				throw new IllegalArgumentException("Target is dead!");
+			if ((this.getActivityStatus().equals("attack")) || (this.getActivityStatus().equals("fall"))
+					|| (target.getActivityStatus().equals("fall"))) {
+				throw new IllegalStateException();
+			}
+			if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
+				throw new IllegalArgumentException("Attack exception");
+			}
+			this.setTarget(target);
+			this.setMinRestCounter(0);
+			this.setActivityStatus("attack");
+			this.resetAttackTime();
+			this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
+					target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
+			target.defend(this);
 		}
-		if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction()))) {
-			throw new IllegalArgumentException("Attack exception");
+		catch(IllegalArgumentException exc){
+			if ((! this.isValidAdjacent(target.getUnitPosition())) || (target.getFaction().equals(this.getFaction())))
+				throw new IllegalArgumentException("Attack exception");
 		}
-		this.setTarget(target);
-		this.setMinRestCounter(0);
-		this.setActivityStatus("attack");
-		this.resetAttackTime();
-		this.setOrientation(Math.atan2((target.getUnitPosition().getYArgument() - this.getUnitPosition().getYArgument()),
-				target.getUnitPosition().getXArgument() - this.getUnitPosition().getXArgument()));
-		target.defend(this);
 	}
 	
 	/**
@@ -2808,12 +2831,11 @@ public class Unit extends GameObject {
 	
 	/**
 	 * Terminate this unit.
-	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction and it's world.
+	 * @effect	This unit drops all objects from it's inventory at it's position and  is then removed from it's faction.
 	 * 			It's activity status, velocity, destination, faction, name, next position, world, 
 	 * 			path and work position are given the null reference. It's double hp and stamina are set 0.
 	 * 			| this.emptyInventory(this.getUnitPosition())
 	 * 			| this.getFaction().removeUnit(this)
-	 * 			| this.getWorld().removeUnit(this)
 	 * 			| this.activityStatus = null
 	 *			| this.destination = null
 	 *			| this.faction = null
@@ -2836,7 +2858,6 @@ public class Unit extends GameObject {
 		this.getFaction().removeUnit(this);
 		this.faction = null;
 		this.name = null;
-		this.getWorld().removeUnit(this);
 		this.path = null;
 		this.workPosition = null;
 		this.setDoubleHP(0);
@@ -3191,7 +3212,7 @@ public class Unit extends GameObject {
 	 * 			|  || (this.isTerminated())
 	 */
 	public boolean canHaveAsDefendAttempt(Unit attacker){
-		return (((attacker != null) && (this.getWorld().hasAsUnit(attacker))) || (this.isTerminated()));
+		return (((attacker != null) && ((this.isTerminated()) || (this.getWorld().hasAsUnit(attacker)))) );
 	}
 	
 	/**

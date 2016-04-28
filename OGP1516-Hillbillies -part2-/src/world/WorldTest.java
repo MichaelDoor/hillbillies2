@@ -3,6 +3,7 @@ package world;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -16,6 +17,7 @@ import org.junit.Test;
 import cube.Cube;
 import faction.Faction;
 import hillbillies.part2.listener.DefaultTerrainChangeListener;
+import objects.GameObject;
 import objects.Material;
 import objects.Unit;
 import position.PositionVector;
@@ -508,7 +510,7 @@ public class WorldTest {
 		world2.addUnit(unit);
 		unit.moveTo(end);
 		world2.advanceTime(20);
-		assertEquals(200, unit.getCurrentHP());
+		assertEquals(unit.getMaxHP(), unit.getCurrentHP());
 	}
 	
 	@Test @Ignore
@@ -533,7 +535,7 @@ public class WorldTest {
 		assertEquals(true,unit.getActivityStatus().equals("default"));
 	}
 
-	@Test @Ignore
+	@Test
 	public void fallToDeath() {
 		int nbX = 5;
 		int nbY = 3;
@@ -567,7 +569,7 @@ public class WorldTest {
 		assertEquals(true, unit.isTerminated());
 	}
 	
-	@Test @Ignore
+	@Test
 	public void fall_Material() {
 		int nbX = 5;
 		int nbY = 3;
@@ -621,4 +623,60 @@ public class WorldTest {
 		assertEquals(true, damage || dodge || block);
 	}
 	
+	
+	@Test
+	public void materialFall_MultipleCubes() {
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 3;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 1; matrix[1][0][0] = 1; matrix[2][0][0] = 1; 
+		matrix[0][1][0] = 1; matrix[1][1][0] = 1; matrix[2][1][0] = 1; 
+		matrix[0][2][0] = 1; matrix[1][2][0] = 1; matrix[2][2][0] = 1; 
+		
+		matrix[0][0][1] = 1; matrix[1][0][1] = 1; matrix[2][0][1] = 1; 
+		matrix[0][1][1] = 1; matrix[1][1][1] = 0; matrix[2][1][1] = 1; 
+		matrix[0][2][1] = 1; matrix[1][2][1] = 1; matrix[2][2][1] = 1; 
+		
+		matrix[0][0][2] = 0; matrix[1][0][2] = 0; matrix[2][0][2] = 0; 
+		matrix[0][1][2] = 0; matrix[1][1][2] = 1; matrix[2][1][2] = 0; 
+		matrix[0][2][2] = 0; matrix[1][2][2] = 0; matrix[2][2][2] = 0; 
+		
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		world2.collapse(new PositionVector(1,1,2));
+		world2.advanceTime(5);
+		Set<Material> materialSet = world2.getMaterialSet();
+		assertEquals(true, materialSet.size() == 1);
+		assertEquals(true, world2.getCube(1, 1, 2).getContent().isEmpty());
+		Cube cube = world2.getCube(1, 1, 1);
+		HashSet<GameObject> cubeContent = cube.getContent();
+		assertEquals(true, materialSet.contains(cubeContent.iterator().next()));
+	}
+	
+	@Test
+	public void fight_TillDeath(){
+		int nbX = 3;
+		int nbY = 3;
+		int nbZ = 1;
+		int[][][] matrix = new int[nbX][nbY][nbZ];
+		matrix[0][0][0] = 0; matrix[1][0][0] = 0; matrix[2][0][0] = 0; 
+		matrix[0][1][0] = 0; matrix[1][1][0] = 0; matrix[2][1][0] = 0; 
+		matrix[0][2][0] = 0; matrix[1][2][0] = 0; matrix[2][2][0] = 0; 
+		
+		World world2 =  new World(matrix, new DefaultTerrainChangeListener());
+		Unit attacker = new Unit(new PositionVector(1,1,0), "Ikke", new Faction());
+		Unit target = new Unit(new PositionVector(0,1,0), "Wow", new Faction());
+		world2.addUnit(attacker);
+		world2.addUnit(target);
+		world2.advanceTime(1);
+		
+		while(! target.isTerminated()){
+			attacker.attack(target);
+			world2.advanceTime(3);
+		}
+		world2.advanceTime(5);
+		assertEquals(true, target.isTerminated());
+		world2.advanceTime(2);
+		assertEquals(false, world2.hasAsUnit(target));
+	}
 }

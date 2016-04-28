@@ -1,5 +1,6 @@
 package objects;
 
+
 import be.kuleuven.cs.som.annotate.Basic;
 import be.kuleuven.cs.som.annotate.Model;
 import be.kuleuven.cs.som.annotate.Raw;
@@ -155,8 +156,9 @@ public abstract class GameObject {
 	/**
 	 * Advance time for this game object by a given amount of time.
 	 * @param dt	The given amount of time.
+	 * @throws IllegalArgumentException 
 	 */
-	public abstract void advanceTime(double dt);
+	public abstract void advanceTime(double dt) throws IllegalArgumentException;
 	
 	/**
 	 * Return the world of this game object.

@@ -933,7 +933,8 @@ public class World {
 	/**
 	 * Advance the time for this world by a given amount of time.
 	 * @param dt	The given amount of time.
-	 * @effect	Time is advanced with the given amount of time for all units and and materials of this world.
+	 * @effect	Time is advanced with the given amount of time for all units and and materials of this world. It's collections
+	 * 			are cleaned.
 	 * @throws	IllegalArgumentException
 	 * 			Time is negative.
 	 */
@@ -949,6 +950,7 @@ public class World {
 				unit.advanceTime(t);
 			for(Material material : this.getMaterialSet())
 				material.advanceTime(t);
+			this.cleanCollections();
 			time = time - t;
 		}
 	}
@@ -1213,6 +1215,8 @@ public class World {
 	 * @param unit	The given unit.
 	 * @param oldCubePosition	The old cube position of this unit.
 	 * @param newCubePosition	The new cube position of this unit.
+	 * @effect	If the given game object is still in the cube referred to by the given old cube position, it is removed from that
+	 * 			cube. The given game object us added to the cube of the given new cube position.
 	 * @throws NullPointerException
 	 * 			The given unit or one of the given positions is not effective.
 	 * @throws IllegalArgumentException
@@ -1226,7 +1230,8 @@ public class World {
 			throw new IllegalArgumentException("This world does not contain the given unit!");
 		Cube oldCube = this.getCube((int) oldCubePosition.getXArgument(), (int) oldCubePosition.getYArgument(),
 				(int) oldCubePosition.getZArgument());
-		oldCube.removeAsContent(gameObject);
+		if(oldCube.hasAsContent(gameObject))
+			oldCube.removeAsContent(gameObject);
 		Cube newCube = this.getCube((int) newCubePosition.getXArgument(), (int) newCubePosition.getYArgument(),
 				(int) newCubePosition.getZArgument());
 		newCube.addAsContent(gameObject);
@@ -1354,7 +1359,7 @@ public class World {
 	/**
 	 * Return a set of all units in the cube of the given position and all units in adjacent cubes of the cube of the given position.
 	 * @param position	The given position.
-	 * @return	A set containing all the units of the cube of the given position and its adjacent cubes.
+	 * @return	A set containing all the not-terminated units of the cube of the given position and its adjacent cubes.
 	 * @throws IllegalArgumentException
 	 * 			The given position is not a valid position for this world.
 	 */
@@ -1366,7 +1371,10 @@ public class World {
 		adjacentStandingPositions.add(position);
 		for(PositionVector adjacent : adjacentStandingPositions){
 			Cube cube = this.getCube((int) adjacent.getXArgument(), (int) adjacent.getYArgument(), (int) adjacent.getZArgument());
-			adjacentUnits.addAll(cube.getUnits());
+			for(Unit unit : cube.getUnits()){
+				if(! unit.isTerminated())
+					adjacentUnits.add(unit);
+			}
 		}
 		return adjacentUnits;
 	}
@@ -1644,4 +1652,59 @@ public class World {
 		return possibilities;
 	}
 	
+	/**
+	 * Makes this world's unit and material set proper sets.
+	 * @effect	Goes over this world's unit and material set, checks whether this world can have its materials as it's materials and 
+	 * 			its units as it's units. If that's not possible for one, it is removed from the list it belonged to.
+	 */
+	private void cleanCollections() {
+		Set<Unit> unitSet = new HashSet<>();
+		for(Unit unit : this.getUnitSet())
+			unitSet.add(unit);
+		Set<Material> materialSet = new HashSet<>();
+		for(Material material : this.getMaterialSet())
+			materialSet.add(material);
+		for(Unit unit : unitSet){
+			if(! this.isValidWorldUnit(unit))
+				this.removeUnit(unit);
+		}
+		for(Material material : materialSet) {
+			if(! this.canHaveAsMaterial(material))
+				this.removeMaterial(material);
+		}
+		this.setUnitSet(unitSet);
+		this.setMaterialSet(materialSet);
+	}
+	
+	/**
+	 * Check whether this world can have a given material as it's material.
+	 * @param material	The given material.
+	 * @return	True if and only if the given material's position is a valid position for this world.
+	 * @throws NullPointerException
+	 * 			The given material is not effective.
+	 */
+	private boolean canHaveAsMaterial(Material material) throws NullPointerException{
+		return this.isValidPosition(material.getCubePositionVector());
+	}
+	
+	/**
+	 * Check whether a given unit from this world is a valid unit for this world.
+	 * @param unit	The given unit.
+	 * @return	True if and only if the given unit has a valid position for this world and is not located in a solid cube and is
+	 * 			not terminated.
+	 * @throws NullPointerException
+	 * 			The given unit is not effective.
+	 * @throws	IllegalArgumentException
+	 * 			The given unit is not in this world.
+	 */
+	private boolean isValidWorldUnit(Unit unit) throws NullPointerException{
+		if(unit == null)
+			throw new NullPointerException();
+		if(! this.hasAsUnit(unit))
+			throw new IllegalArgumentException();
+		boolean flag1 = (this.isValidPosition(unit.getUnitPosition()));
+		boolean flag2 = (! this.getCube(unit.getCubePosition()[0],unit.getCubePosition()[1],unit.getCubePosition()[2]).isSolid());
+		boolean flag3 = (! unit.isTerminated());
+		return (flag1 && flag2 && flag3);
+	}
 }
